@@ -1,18 +1,22 @@
-require("dotenv").config();
-
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const connectDB = require("./config/db");
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url"; // __dirname fix karne ke liye
+import connectDB from "./config/db.js"; // Make sure file extension is .js
 
 /* Route Imports */
-const studentRoutes = require("./routes/studentRoutes");
-const attendanceRoutes = require("./routes/attendanceRoutes");
-const internRoutes = require("./routes/internRoutes");
-const internAttendanceRoutes = require("./routes/internAttendanceRoutes");
-const volunteerRoutes = require("./routes/volunteerRoutes");
-const volunteerAttendanceRoutes = require("./routes/volunteerAttendanceRoutes");
-const verificationRoutes = require("./routes/verificationRoutes");
+import studentRoutes from "./routes/studentRoutes.js";
+import attendanceRoutes from "./routes/attendanceRoutes.js";
+import internRoutes from "./routes/internRoutes.js";
+import internAttendanceRoutes from "./routes/internAttendanceRoutes.js";
+import volunteerRoutes from "./routes/volunteerRoutes.js";
+import volunteerAttendanceRoutes from "./routes/volunteerAttendanceRoutes.js";
+import verificationRoutes from "./routes/verificationRoutes.js";
+
+// __dirname setup for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Database Se Connect Karein
 connectDB();
@@ -30,13 +34,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 /* API Routes Mapping */
 app.use("/api/students", studentRoutes);
 app.use("/api/attendance", attendanceRoutes);
-
 app.use("/api/interns", internRoutes);
 app.use("/api/intern-attendance", internAttendanceRoutes);
-
 app.use("/api/volunteers", volunteerRoutes);
 app.use("/api/volunteer-attendance", volunteerAttendanceRoutes);
-
 app.use("/api/verify", verificationRoutes);
 
 /* Root API Status */
@@ -46,17 +47,13 @@ app.get("/", (req, res) => {
 
 /* 404 Route Catch-all */
 app.use((req, res) => {
-  res.status(404).json({
-    message: "Route not found",
-  });
+  res.status(404).json({ message: "Route not found" });
 });
 
 /* Global Error Handler */
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({
-    message: "Internal Server Error",
-  });
+  res.status(500).json({ message: "Internal Server Error" });
 });
 
 /* Server Start */

@@ -1,29 +1,28 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const internAttendanceSchema =
-  new mongoose.Schema(
-    {
-      intern: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Intern",
-        required: true,
-      },
-
-      date: {
-        type: String,
-        required: true,
-      },
-
-      status: {
-        type: String,
-        enum: ["Present", "Absent"],
-        required: true,
-      },
+const internAttendanceSchema = new mongoose.Schema(
+  {
+    intern: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Intern",
+      required: true,
     },
-    {
-      timestamps: true,
-    }
-  );
+
+    date: {
+      type: String,
+      required: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["Present", "Absent"],
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 internAttendanceSchema.index(
   {
@@ -35,7 +34,6 @@ internAttendanceSchema.index(
   }
 );
 
-module.exports = mongoose.model(
-  "InternAttendance",
-  internAttendanceSchema
-);
+const InternAttendance = mongoose.model("InternAttendance", internAttendanceSchema);
+
+export default InternAttendance;

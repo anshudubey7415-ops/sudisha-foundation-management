@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const volunteerSchema = new mongoose.Schema(
   {
@@ -158,7 +158,6 @@ const volunteerSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model(
-  "Volunteer",
-  volunteerSchema
-);
+const Volunteer = mongoose.model("Volunteer", volunteerSchema);
+
+export default Volunteer;

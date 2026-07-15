@@ -161,9 +161,9 @@ function Sidebar() {
         >
           <Link to="/volunteers" style={linkStyle}>Volunteer Details</Link>
           <Link to="/add-volunteer" style={linkStyle}>Add Volunteer</Link>
-          
-          {/* COMPLETE FIX: Sabhi volunteers ki Date-wise history dekhne ka naya option */}
           <Link to="/volunteer-date-attendance" style={linkStyle}>Date Wise Attendance</Link>
+          {/* New Attendance List Option Added Below */}
+          <Link to="/volunteer/bulk-attendance" style={linkStyle}>Volunteer Attendance List</Link>
         </div>
       )}
     </div>

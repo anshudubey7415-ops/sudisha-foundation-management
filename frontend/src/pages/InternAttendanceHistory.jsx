@@ -6,53 +6,40 @@ function InternAttendanceHistory() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetchAttendance();
-  }, []);
+    // Function ko useEffect ke andar move kiya
+    const fetchAttendance = async () => {
+      try {
+        const res = await API.get("/intern-attendance");
 
-  const fetchAttendance = async () => {
-    try {
-      const res = await API.get(
-        "/intern-attendance"
-      );
-
-      const sortedRecords =
-        res.data.sort(
-          (a, b) =>
-            new Date(b.date) -
-            new Date(a.date)
+        const sortedRecords = res.data.sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
         );
 
-      setRecords(sortedRecords);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+        setRecords(sortedRecords);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchAttendance();
+  }, []); // Ab koi error nahi aayega
 
   const filteredRecords = records.filter(
     (record) =>
-      `${record.intern?.name || ""}
-       ${record.intern?.internId || ""}`
+      `${record.intern?.name || ""} ${record.intern?.internId || ""}`
         .toLowerCase()
-        .includes(
-          searchTerm.toLowerCase()
-        )
+        .includes(searchTerm.toLowerCase())
   );
 
   return (
     <div style={{ padding: "20px" }}>
-      <h1>
-        Intern Attendance History
-      </h1>
+      <h1>Intern Attendance History</h1>
 
       <input
         type="text"
         placeholder="Search Intern..."
         value={searchTerm}
-        onChange={(e) =>
-          setSearchTerm(
-            e.target.value
-          )
-        }
+        onChange={(e) => setSearchTerm(e.target.value)}
         style={{
           width: "100%",
           maxWidth: "500px",
@@ -66,11 +53,7 @@ function InternAttendanceHistory() {
       <table
         border="1"
         cellPadding="10"
-        style={{
-          width: "100%",
-          borderCollapse:
-            "collapse",
-        }}
+        style={{ width: "100%", borderCollapse: "collapse" }}
       >
         <thead>
           <tr>
@@ -82,45 +65,21 @@ function InternAttendanceHistory() {
         </thead>
 
         <tbody>
-          {filteredRecords.map(
-            (record) => (
-              <tr
-                key={record._id}
+          {filteredRecords.map((record) => (
+            <tr key={record._id}>
+              <td>{record.intern?.internId}</td>
+              <td>{record.intern?.name}</td>
+              <td>{record.date}</td>
+              <td
+                style={{
+                  color: record.status === "Present" ? "green" : "red",
+                  fontWeight: "bold",
+                }}
               >
-                <td>
-                  {
-                    record.intern
-                      ?.internId
-                  }
-                </td>
-
-                <td>
-                  {
-                    record.intern
-                      ?.name
-                  }
-                </td>
-
-                <td>
-                  {record.date}
-                </td>
-
-                <td
-                  style={{
-                    color:
-                      record.status ===
-                      "Present"
-                        ? "green"
-                        : "red",
-                    fontWeight:
-                      "bold",
-                  }}
-                >
-                  {record.status}
-                </td>
-              </tr>
-            )
-          )}
+                {record.status}
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

@@ -1,11 +1,11 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const Volunteer = require("../models/Volunteer");
-const VolunteerAttendance = require("../models/VolunteerAttendance");
+import Volunteer from "../models/Volunteer.js";
+import VolunteerAttendance from "../models/VolunteerAttendance.js";
 
-const multer = require("multer");
-const path = require("path");
+import multer from "multer";
+import path from "path";
 
 /* =========================
     Multer Configuration
@@ -17,11 +17,7 @@ const storage = multer.diskStorage({
   },
 
   filename: (req, file, cb) => {
-    cb(
-      null,
-      Date.now() +
-        path.extname(file.originalname)
-    );
+    cb(null, Date.now() + path.extname(file.originalname));
   },
 });
 
@@ -30,8 +26,8 @@ const upload = multer({
 });
 
 /* ==========================================
-   💥 FIXED ROUTE: Get Date-Wise Attendance History
-   URL Pattern: /api/volunteers/attendance/date/:date
+    💥 FIXED ROUTE: Get Date-Wise Attendance History
+    URL Pattern: /api/volunteers/attendance/date/:date
 ========================================== */
 router.get("/attendance/date/:date", async (req, res) => {
   try {
@@ -64,30 +60,25 @@ router.get("/attendance/date/:date", async (req, res) => {
     Upload Volunteer Photo
 ========================= */
 
-router.post(
-  "/upload/:id",
-  upload.single("photo"),
-  async (req, res) => {
-    try {
-      const volunteer =
-        await Volunteer.findByIdAndUpdate(
-          req.params.id,
-          {
-            photo: req.file.filename,
-          },
-          {
-            new: true,
-          }
-        );
+router.post("/upload/:id", upload.single("photo"), async (req, res) => {
+  try {
+    const volunteer = await Volunteer.findByIdAndUpdate(
+      req.params.id,
+      {
+        photo: req.file.filename,
+      },
+      {
+        new: true,
+      }
+    );
 
-      res.json(volunteer);
-    } catch (error) {
-      res.status(500).json({
-        message: error.message,
-      });
-    }
+    res.json(volunteer);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
   }
-);
+});
 
 /* =========================
     Add Volunteer
@@ -95,8 +86,7 @@ router.post(
 
 router.post("/add", async (req, res) => {
   try {
-    const volunteer =
-      await Volunteer.create(req.body);
+    const volunteer = await Volunteer.create(req.body);
 
     res.status(201).json(volunteer);
   } catch (error) {
@@ -112,63 +102,39 @@ router.post("/add", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const volunteers =
-      await Volunteer.find();
+    const volunteers = await Volunteer.find();
 
-    const data =
-      await Promise.all(
-        volunteers.map(
-          async (volunteer) => {
-            const records =
-              await VolunteerAttendance.find(
-                {
-                  volunteer:
-                    volunteer._id,
-                }
-              );
+    const data = await Promise.all(
+      volunteers.map(async (volunteer) => {
+        const records = await VolunteerAttendance.find({
+          volunteer: volunteer._id,
+        });
 
-            const totalAttendanceDays =
-              records.length;
+        const totalAttendanceDays = records.length;
 
-            const presentDays =
-              records.filter(
-                (record) =>
-                  record.status ===
-                  "Present"
-              ).length;
+        const presentDays = records.filter(
+          (record) => record.status === "Present"
+        ).length;
 
-            const attendancePercentage =
-              totalAttendanceDays > 0
-                ? (
-                    (presentDays /
-                      totalAttendanceDays) *
-                    100
-                  ).toFixed(1)
-                : 0;
+        const attendancePercentage =
+          totalAttendanceDays > 0
+            ? ((presentDays / totalAttendanceDays) * 100).toFixed(1)
+            : 0;
 
-            const totalHours =
-              records.reduce(
-                (
-                  total,
-                  record
-                ) =>
-                  total +
-                  (record.hoursWorked ||
-                    0),
-                0
-              );
+        const totalHours = records.reduce(
+          (total, record) => total + (record.hoursWorked || 0),
+          0
+        );
 
-            return {
-              ...volunteer.toObject(),
-
-              presentDays,
-              totalAttendanceDays,
-              attendancePercentage,
-              totalHours,
-            };
-          }
-        )
-      );
+        return {
+          ...volunteer.toObject(),
+          presentDays,
+          totalAttendanceDays,
+          attendancePercentage,
+          totalHours,
+        };
+      })
+    );
 
     res.json(data);
   } catch (error) {
@@ -184,54 +150,36 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   try {
-    const volunteer =
-      await Volunteer.findById(
-        req.params.id
-      );
+    const volunteer = await Volunteer.findById(req.params.id);
 
     if (!volunteer) {
       return res.status(404).json({
-        message:
-          "Volunteer not found",
+        message: "Volunteer not found",
       });
     }
 
-    const records =
-      await VolunteerAttendance.find({
-        volunteer:
-          volunteer._id,
-      });
+    const records = await VolunteerAttendance.find({
+      volunteer: volunteer._id,
+    });
 
-    const totalAttendanceDays =
-      records.length;
+    const totalAttendanceDays = records.length;
 
-    const presentDays =
-      records.filter(
-        (record) =>
-          record.status ===
-          "Present"
-      ).length;
+    const presentDays = records.filter(
+      (record) => record.status === "Present"
+    ).length;
 
     const attendancePercentage =
       totalAttendanceDays > 0
-        ? (
-            (presentDays /
-              totalAttendanceDays) *
-            100
-          ).toFixed(1)
+        ? ((presentDays / totalAttendanceDays) * 100).toFixed(1)
         : 0;
 
-    const totalHours =
-      records.reduce(
-        (total, record) =>
-          total +
-          (record.hoursWorked || 0),
-        0
-      );
+    const totalHours = records.reduce(
+      (total, record) => total + (record.hoursWorked || 0),
+      0
+    );
 
     res.json({
       ...volunteer.toObject(),
-
       presentDays,
       totalAttendanceDays,
       attendancePercentage,
@@ -250,19 +198,17 @@ router.get("/:id", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   try {
-    const volunteer =
-      await Volunteer.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        {
-          new: true,
-        }
-      );
+    const volunteer = await Volunteer.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+      }
+    );
 
     if (!volunteer) {
       return res.status(404).json({
-        message:
-          "Volunteer not found",
+        message: "Volunteer not found",
       });
     }
 
@@ -280,28 +226,20 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    const volunteer =
-      await Volunteer.findByIdAndDelete(
-        req.params.id
-      );
+    const volunteer = await Volunteer.findByIdAndDelete(req.params.id);
 
     if (!volunteer) {
       return res.status(404).json({
-        message:
-          "Volunteer not found",
+        message: "Volunteer not found",
       });
     }
 
-    await VolunteerAttendance.deleteMany(
-      {
-        volunteer:
-          req.params.id,
-      }
-    );
+    await VolunteerAttendance.deleteMany({
+      volunteer: req.params.id,
+    });
 
     res.json({
-      message:
-        "Volunteer deleted successfully",
+      message: "Volunteer deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -310,4 +248,4 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

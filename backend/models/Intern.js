@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const internSchema = new mongoose.Schema(
   {
@@ -106,7 +106,6 @@ const internSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model(
-  "Intern",
-  internSchema
-);
+const Intern = mongoose.model("Intern", internSchema);
+
+export default Intern;
