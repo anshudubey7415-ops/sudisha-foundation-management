@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
 
@@ -25,7 +26,9 @@ const Card = ({ title, count, color, onClick, suffix = "" }) => (
 function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const [projects, setProjects] = useState([]); // <-- Ye add kiya
   const [todayRecords, setTodayRecords] = useState({ students: [], interns: [], volunteers: [] });
+  const [announcements, setAnnouncements] = useState([]);
   const [selectedTitle, setSelectedTitle] = useState("");
   const [selectedList, setSelectedList] = useState([]);
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
@@ -35,16 +38,21 @@ function Dashboard() {
 
     const fetchData = async () => {
       try {
-        const [sRes, iRes, vRes, saRes, iaRes, vaRes] = await Promise.all([
+        const [sRes, iRes, vRes, saRes, iaRes, vaRes, aRes, pRes] = await Promise.all([
           API.get("/students"),
           API.get("/interns"),
           API.get("/volunteers"),
           API.get("/attendance"),
           API.get("/intern-attendance"),
-          API.get("/volunteer-attendance")
+          API.get("/volunteer-attendance"),
+          API.get("/announcements"),
+          API.get("/projects") // <-- Ye add kiya
         ]);
 
         if (!isMounted) return;
+
+        setAnnouncements(aRes.data);
+        setProjects(pRes.data); // <-- Ye add kiya
 
         const filteredS = saRes.data.filter((r) => r.date === filterDate);
         const filteredI = iaRes.data.filter((r) => r.date === filterDate);
@@ -94,6 +102,7 @@ function Dashboard() {
 
   return (
     <div style={{ padding: "30px", background: "#f8fafc", minHeight: "100vh" }}>
+      {/* ... (Baki purana code waise hi hai) ... */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
         <h1 style={{ color: "#1e3a8a", margin: 0 }}>Sudisha Foundation Dashboard</h1>
         <div style={{ display: "flex", gap: "10px" }}>
@@ -102,7 +111,14 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Students */}
+      {announcements.length > 0 && (
+        <div onClick={() => navigate("/all-announcements")} style={{ background: "#fffbeb", padding: "20px", border: "1px solid #f59e0b", borderRadius: "8px", marginBottom: "30px", cursor: "pointer" }}>
+          <h3 style={{ margin: "0 0 10px 0", color: "#b45309" }}>📢 Latest Announcements</h3>
+          <p style={{ margin: 0 }}><strong>{announcements[0].title}</strong>: {announcements[0].message}</p>
+        </div>
+      )}
+
+      {/* Analytics Sections */}
       <h3 style={{ color: "#334155" }}>📚 Student Analytics</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
         <Card title="Total Students" count={stats.students.total} color="#2563eb" />
@@ -110,7 +126,6 @@ function Dashboard() {
         <Card title="Absent" count={stats.students.absent} color="#dc2626" onClick={() => { setSelectedTitle("Absent Students"); setSelectedList(todayRecords.students.filter(r => r.status === "Absent")); }} />
       </div>
 
-      {/* Interns */}
       <h3 style={{ marginTop: "30px", color: "#334155" }}>🎓 Intern Analytics</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
         <Card title="Total Interns" count={stats.interns.total} color="#7c3aed" />
@@ -118,7 +133,6 @@ function Dashboard() {
         <Card title="Absent" count={stats.interns.absent} color="#dc2626" onClick={() => { setSelectedTitle("Absent Interns"); setSelectedList(todayRecords.interns.filter(r => r.status === "Absent")); }} />
       </div>
 
-      {/* Volunteers */}
       <h3 style={{ marginTop: "30px", color: "#334155" }}>🤝 Volunteer Analytics</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
         <Card title="Total Volunteers" count={stats.volunteers.total} color="#d97706" />
@@ -126,7 +140,6 @@ function Dashboard() {
         <Card title="Absent" count={stats.volunteers.absent} color="#dc2626" onClick={() => { setSelectedTitle("Absent Volunteers"); setSelectedList(todayRecords.volunteers.filter(r => r.status === "Absent")); }} />
       </div>
 
-      {/* Foundation Overview */}
       <h3 style={{ marginTop: "30px", color: "#334155" }}>🏢 Foundation Overview</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
         <Card title="Total People" count={stats.foundation.totalPeople} color="#0f766e" />
@@ -144,6 +157,30 @@ function Dashboard() {
           ))}
         </div>
       )}
+
+      {/* Visual Insights Section */}
+      <h3 style={{ marginTop: "30px", color: "#334155" }}>📊 Visual Insights</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px", marginTop: "20px" }}>
+        <div style={{ background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+          <h4 style={{ textAlign: "center" }}>Project Status Distribution</h4>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie data={[{name: "Active", value: projects.filter(p => p.status === "Active").length}, {name: "Completed", value: projects.filter(p => p.status === "Completed").length}]} innerRadius={60} outerRadius={80} dataKey="value">
+                <Cell fill="#2563eb" /> <Cell fill="#16a34a" />
+              </Pie>
+              <Tooltip /> <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{ background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+          <h4 style={{ textAlign: "center" }}>Member Distribution</h4>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={[{name: 'Students', count: stats.students.total}, {name: 'Interns', count: stats.interns.total}, {name: 'Volunteers', count: stats.volunteers.total}]}>
+              <XAxis dataKey="name" /> <YAxis /> <Tooltip /> <Bar dataKey="count" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }

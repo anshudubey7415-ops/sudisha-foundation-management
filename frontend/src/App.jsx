@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
-import { ThemeProvider } from "./context/ThemeContext";
-
+import AllProjects from "./pages/AllProjects"; // Naya Import
+import EditProject from "./pages/EditProject";
 // ======= STUDENTS COMPONENTS =======
 import Students from "./pages/Students";
 import AddStudent from "./pages/AddStudent";
@@ -21,6 +21,8 @@ import InternIdCard from "./pages/InternIdCard";
 import OfferLetter from "./pages/OfferLetter";
 import InternCertificate from "./pages/InternCertificate";
 import EditIntern from "./pages/EditIntern";
+import AddProject from "./pages/AddProject";
+
 
 // ======= VOLUNTEERS COMPONENTS =======
 import Volunteers from "./pages/Volunteers";
@@ -33,66 +35,73 @@ import VolunteerIdCard from "./pages/VolunteerIdCard";
 import EditVolunteer from "./pages/EditVolunteer";
 import VolunteerAttendanceBulk from './pages/VolunteerAttendanceBulk';
 
-// ======= DASHBOARD & SETTINGS =======
+// ======= DASHBOARD, SETTINGS & ANNOUNCEMENTS =======
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+import AllAnnouncements from "./pages/AllAnnouncements";
+import AttendanceReport from "./pages/AttendanceReport";
 
 function App() {
   return (
-    <ThemeProvider>
-      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-        {/* Top Navbar / Dropdown Sidebar Menu */}
-        <Sidebar />
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      {/* Top Navbar / Dropdown Sidebar Menu */}
+      <Sidebar />
 
-        {/* Main Content Render Area */}
-        <div style={{ flex: 1, padding: "20px" }} className="main-content">
-          <Routes>
-            {/* Dashboard Home Route */}
-            <Route path="/" element={<Dashboard />} />
-            
-            {/* Settings Route */}
-            <Route path="/settings" element={<Settings />} />
+      {/* Main Content Render Area */}
+      <div style={{ flex: 1, padding: "20px" }} className="main-content">
+        <Routes>
+          {/* Dashboard Home Route */}
+          <Route path="/" element={<Dashboard />} />
+          
+          {/* Settings Route */}
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/all-projects" element={<AllProjects />} />
+          <Route path="/edit-project/:id" element={<EditProject />} />
 
-            {/* ==========================================
-                STUDENTS ROUTES
-                ========================================== */}
-            <Route path="/students" element={<Students />} />
-            <Route path="/add-student" element={<AddStudent />} />
-            <Route path="/student/:id" element={<StudentProfile />} />
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/student/id-card/:id" element={<StudentIdCard />} />
-            <Route path="/attendance-history" element={<AttendanceHistory />} />
-            <Route path="/date-wise-attendance" element={<DateWiseAttendance />} />
+          {/* All Announcements Route */}
+          <Route path="/all-announcements" element={<AllAnnouncements />} />
 
-            {/* ==========================================
-                INTERNS ROUTES
-                ========================================== */}
-            <Route path="/interns" element={<Interns />} />
-            <Route path="/add-intern" element={<AddIntern />} />
-            <Route path="/intern/:id" element={<InternProfile />} />
-            <Route path="/intern-id/:id" element={<InternIdCard />} />
-            <Route path="/offer-letter/:id" element={<OfferLetter />} />
-            <Route path="/intern-certificate/:id" element={<InternCertificate />} />
-            <Route path="/edit-intern/:id" element={<EditIntern />} />
-            <Route path="/intern-attendance" element={<InternAttendance />} />
-            <Route path="/intern-attendance-history" element={<InternAttendanceHistory />} />
+          {/* ==========================================
+              STUDENTS ROUTES
+              ========================================== */}
+          <Route path="/students" element={<Students />} />
+          <Route path="/add-student" element={<AddStudent />} />
+          <Route path="/student/:id" element={<StudentProfile />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/student/id-card/:id" element={<StudentIdCard />} />
+          <Route path="/attendance-history" element={<AttendanceHistory />} />
+          <Route path="/date-wise-attendance" element={<DateWiseAttendance />} />
 
-            {/* ==========================================
-                VOLUNTEERS ROUTES
-                ========================================== */}
-            <Route path="/volunteers" element={<Volunteers />} />
-            <Route path="/add-volunteer" element={<AddVolunteer />} />
-            <Route path="/volunteer/:id" element={<VolunteerProfile />} />
-            <Route path="/volunteer-date-attendance" element={<VolunteerAllHistory />} />
-            <Route path="/volunteer-attendance/:id" element={<VolunteerAttendance />} />
-            <Route path="/volunteer-history/:id" element={<VolunteerAttendanceHistory />} />
-            <Route path="/volunteer-id/:id" element={<VolunteerIdCard />} />
-            <Route path="/edit-volunteer/:id" element={<EditVolunteer />} />
-            <Route path="/volunteer/bulk-attendance" element={<VolunteerAttendanceBulk />} />
-          </Routes>
-        </div>
+          {/* ==========================================
+              INTERNS ROUTES
+              ========================================== */}
+          <Route path="/interns" element={<Interns />} />
+          <Route path="/add-intern" element={<AddIntern />} />
+          <Route path="/intern/:id" element={<InternProfile />} />
+          <Route path="/intern-id/:id" element={<InternIdCard />} />
+          <Route path="/offer-letter/:id" element={<OfferLetter />} />
+          <Route path="/intern-certificate/:id" element={<InternCertificate />} />
+          <Route path="/edit-intern/:id" element={<EditIntern />} />
+          <Route path="/intern-attendance" element={<InternAttendance />} />
+          <Route path="/intern-attendance-history" element={<InternAttendanceHistory />} />
+          <Route path="/add-project" element={<AddProject />} />
+
+          {/* ==========================================
+              VOLUNTEERS ROUTES
+              ========================================== */}
+          <Route path="/volunteers" element={<Volunteers />} />
+          <Route path="/add-volunteer" element={<AddVolunteer />} />
+          <Route path="/volunteer/:id" element={<VolunteerProfile />} />
+          <Route path="/volunteer-date-attendance" element={<VolunteerAllHistory />} />
+          <Route path="/volunteer-attendance/:id" element={<VolunteerAttendance />} />
+          <Route path="/volunteer-history/:id" element={<VolunteerAttendanceHistory />} />
+          <Route path="/volunteer-id/:id" element={<VolunteerIdCard />} />
+          <Route path="/edit-volunteer/:id" element={<EditVolunteer />} />
+          <Route path="/volunteer/bulk-attendance" element={<VolunteerAttendanceBulk />} />
+          <Route path="/attendance-report" element={<AttendanceReport />} />
+        </Routes>
       </div>
-    </ThemeProvider>
+    </div>
   );
 }
 

@@ -100,6 +100,20 @@ function Sidebar() {
         >
           Volunteers {showVolunteers ? "▲" : "▼"}
         </button>
+
+        {/* Attendance Report Link (Directly in Navbar) */}
+        <Link 
+          to="/attendance-report" 
+          style={{ 
+            color: "#f59e0b", 
+            textDecoration: "none", 
+            fontWeight: "bold", 
+            fontSize: "18px",
+            marginLeft: "auto" // Right side push karne ke liye
+          }}
+        >
+          📊 Attendance Report
+        </Link>
       </div>
 
       {/* =====================
@@ -142,6 +156,8 @@ function Sidebar() {
           <Link to="/add-intern" style={linkStyle}>Add Intern</Link>
           <Link to="/intern-attendance" style={linkStyle}>Intern Attendance</Link>
           <Link to="/intern-attendance-history" style={linkStyle}>Attendance History</Link>
+          <Link to="/add-project" style={linkStyle}>🚀 Assign Project</Link>
+          <Link to="/all-projects" style={linkStyle}>📋 View All Projects</Link>
         </div>
       )}
 
@@ -162,7 +178,6 @@ function Sidebar() {
           <Link to="/volunteers" style={linkStyle}>Volunteer Details</Link>
           <Link to="/add-volunteer" style={linkStyle}>Add Volunteer</Link>
           <Link to="/volunteer-date-attendance" style={linkStyle}>Date Wise Attendance</Link>
-          {/* New Attendance List Option Added Below */}
           <Link to="/volunteer/bulk-attendance" style={linkStyle}>Volunteer Attendance List</Link>
         </div>
       )}

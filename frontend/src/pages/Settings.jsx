@@ -1,9 +1,11 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { ThemeContext } from '../context/ThemeContext';
 import Layout from "../components/Layout";
+import API from "../api";
 
 const Settings = () => {
   const { theme, setTheme } = useContext(ThemeContext);
+  const [announcement, setAnnouncement] = useState({ title: "", message: "" });
   
   // Demo user data
   const user = { name: "Anshu", role: "ADMIN", email: "anshu@sudisha.org" };
@@ -11,6 +13,17 @@ const Settings = () => {
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/login";
+  };
+
+  const handlePostAnnouncement = async () => {
+    if (!announcement.title || !announcement.message) return alert("Please fill all fields");
+    try {
+      await API.post("/announcements", announcement);
+      alert("Announcement Posted Successfully!");
+      setAnnouncement({ title: "", message: "" });
+   } catch (err) {
+  console.error("Announcement Error:", err); // Ab err use ho gaya, warning chali jayegi
+}
   };
 
   return (
@@ -25,10 +38,27 @@ const Settings = () => {
           <p><strong>Role:</strong> <span style={roleBadge}>{user.role}</span></p>
         </section>
 
+        {/* Announcement Section (New) */}
+        <section style={sectionStyle}>
+          <h3 style={{ marginTop: 0 }}>📢 Post Announcement</h3>
+          <input 
+            placeholder="Title" 
+            value={announcement.title}
+            onChange={(e) => setAnnouncement({...announcement, title: e.target.value})}
+            style={{ ...inputStyle, width: "100%", marginBottom: "10px", boxSizing: "border-box" }} 
+          />
+          <textarea 
+            placeholder="Message" 
+            value={announcement.message}
+            onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
+            style={{ ...inputStyle, width: "100%", height: "80px", marginBottom: "10px", boxSizing: "border-box" }} 
+          />
+          <button onClick={handlePostAnnouncement} style={buttonStyle}>Post</button>
+        </section>
+
         {/* Preferences Section */}
         <section style={sectionStyle}>
           <h3 style={{ marginTop: 0 }}>⚙️ Preferences</h3>
-          
           <div style={optionStyle}>
             <label>Mode (Theme):</label>
             <select 
@@ -52,7 +82,7 @@ const Settings = () => {
   );
 };
 
-// Styling using CSS variables
+// Styling
 const sectionStyle = { 
   padding: "20px", 
   border: "1px solid var(--border)", 
@@ -62,6 +92,7 @@ const sectionStyle = {
 };
 const optionStyle = { margin: "15px 0", display: "flex", justifyContent: "space-between", alignItems: "center" };
 const inputStyle = { padding: "8px", borderRadius: "5px", border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)" };
+const buttonStyle = { background: "#4338ca", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer", width: "100%" };
 const roleBadge = { 
   background: "#e0e7ff", 
   padding: "3px 10px", 
