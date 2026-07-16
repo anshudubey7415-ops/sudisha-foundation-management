@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import API from "../api";
 
 function VolunteerAllHistory() {
@@ -8,23 +8,23 @@ function VolunteerAllHistory() {
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchDateWiseAttendance = useCallback(async () => {
-    if (!selectedDate) return;
-    try {
-      setLoading(true);
-      const res = await API.get(`/volunteers/attendance/date/${selectedDate}`);
-      setAttendanceData(res.data || []);
-    } catch (error) {
-      console.error("Error fetching date-wise attendance:", error);
-      setAttendanceData([]); // Error aane par page load block ya loop nahi karega
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDate]);
-
   useEffect(() => {
-    fetchDateWiseAttendance();
-  }, [fetchDateWiseAttendance]);
+    // IIFE ka use kar rahe hain taaki koi warning na aaye
+    (async () => {
+      if (!selectedDate) return;
+
+      setLoading(true);
+      try {
+        const res = await API.get(`/volunteers/attendance/date/${selectedDate}`);
+        setAttendanceData(res.data || []);
+      } catch (error) {
+        console.error("Error fetching date-wise attendance:", error);
+        setAttendanceData([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [selectedDate]); // Sirf selectedDate change hone par chalega
 
   return (
     <div style={{ padding: "20px" }}>
@@ -50,7 +50,9 @@ function VolunteerAllHistory() {
         <h3>Loading attendance records...</h3>
       ) : attendanceData.length === 0 ? (
         <div style={{ padding: "20px", background: "#f9fafb", borderRadius: "8px", border: "1px solid #ddd" }}>
-          <p style={{ margin: 0, color: "#666" }}>No attendance records found for <strong>{selectedDate}</strong>.</p>
+          <p style={{ margin: 0, color: "#666" }}>
+            No attendance records found for <strong>{selectedDate}</strong>.
+          </p>
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>

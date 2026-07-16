@@ -5,25 +5,21 @@ import QRCode from "react-qr-code";
 
 function InternIdCard() {
   const { id } = useParams();
-
-  const [intern, setIntern] =
-    useState(null);
+  const [intern, setIntern] = useState(null);
 
   useEffect(() => {
+    // Function ko useEffect ke andar define kar diya
+    const fetchIntern = async () => {
+      try {
+        const res = await API.get(`/interns/${id}`);
+        setIntern(res.data);
+      } catch (error) {
+        console.error("Error fetching intern:", error);
+      }
+    };
+
     fetchIntern();
-  }, []);
-
-  const fetchIntern = async () => {
-    try {
-      const res = await API.get(
-        `/interns/${id}`
-      );
-
-      setIntern(res.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  }, [id]); // id ko dependency mein add kar diya
 
   const printCard = () => {
     window.print();
@@ -34,11 +30,7 @@ function InternIdCard() {
   }
 
   return (
-    <div
-      style={{
-        padding: "20px",
-      }}
-    >
+    <div style={{ padding: "20px" }}>
       <h1>Intern ID Card</h1>
 
       <div
@@ -48,18 +40,11 @@ function InternIdCard() {
           border: "2px solid #2563eb",
           borderRadius: "15px",
           padding: "20px",
-          backgroundColor:
-            "#f8fafc",
+          backgroundColor: "#f8fafc",
           textAlign: "center",
         }}
       >
-        <h2
-          style={{
-            color: "#2563eb",
-          }}
-        >
-          Sudisha Foundation
-        </h2>
+        <h2 style={{ color: "#2563eb" }}>Sudisha Foundation</h2>
 
         {intern.photo ? (
           <img
@@ -70,8 +55,7 @@ function InternIdCard() {
               height: "120px",
               borderRadius: "50%",
               objectFit: "cover",
-              border:
-                "3px solid #2563eb",
+              border: "3px solid #2563eb",
             }}
           />
         ) : (
@@ -80,72 +64,26 @@ function InternIdCard() {
               width: "120px",
               height: "120px",
               borderRadius: "50%",
-              background:
-                "#d1d5db",
+              background: "#d1d5db",
               margin: "auto",
             }}
           />
         )}
 
         <h2>{intern.name}</h2>
+        <p><strong>Intern ID:</strong> {intern.internId}</p>
+        <p><strong>Department:</strong> {intern.department}</p>
+        <p><strong>College:</strong> {intern.college}</p>
+        <p><strong>Mobile:</strong> {intern.phone}</p>
+        <p><strong>Start Date:</strong> {intern.startDate}</p>
+        <p><strong>End Date:</strong> {intern.endDate}</p>
 
-        <p>
-          <strong>
-            Intern ID:
-          </strong>{" "}
-          {intern.internId}
-        </p>
-
-        <p>
-          <strong>
-            Department:
-          </strong>{" "}
-          {intern.department}
-        </p>
-
-        <p>
-          <strong>
-            College:
-          </strong>{" "}
-          {intern.college}
-        </p>
-
-        <p>
-          <strong>
-            Mobile:
-          </strong>{" "}
-          {intern.phone}
-        </p>
-
-        <p>
-          <strong>
-            Start Date:
-          </strong>{" "}
-          {intern.startDate}
-        </p>
-
-        <p>
-          <strong>
-            End Date:
-          </strong>{" "}
-          {intern.endDate}
-        </p>
-
-        <div
-          style={{
-            marginTop: "20px",
-            display: "flex",
-            justifyContent:
-              "center",
-          }}
-        >
+        <div style={{ marginTop: "20px", display: "flex", justifyContent: "center" }}>
           <QRCode
             value={JSON.stringify({
               id: intern.internId,
-              name:
-                intern.name,
-              department:
-                intern.department,
+              name: intern.name,
+              department: intern.department,
             })}
             size={120}
           />
@@ -157,12 +95,10 @@ function InternIdCard() {
       <button
         onClick={printCard}
         style={{
-          backgroundColor:
-            "#16a34a",
+          backgroundColor: "#16a34a",
           color: "white",
           border: "none",
-          padding:
-            "10px 20px",
+          padding: "10px 20px",
           borderRadius: "5px",
           cursor: "pointer",
         }}

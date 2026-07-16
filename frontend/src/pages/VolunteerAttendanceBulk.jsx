@@ -6,8 +6,17 @@ const VolunteerAttendanceBulk = () => {
   const [attendance, setAttendance] = useState({});
 
   useEffect(() => {
-    // Load all volunteers
-    API.get("/volunteers").then((res) => setVolunteers(res.data));
+    // API call ko useEffect ke andar define aur call kar rahe hain
+    const fetchVolunteers = async () => {
+      try {
+        const res = await API.get("/volunteers");
+        setVolunteers(res.data);
+      } catch (err) {
+        console.error("Error fetching volunteers:", err);
+      }
+    };
+
+    fetchVolunteers();
   }, []);
 
   const handleToggle = (id) => {
@@ -21,7 +30,7 @@ const VolunteerAttendanceBulk = () => {
     const date = new Date().toISOString().split("T")[0];
     const records = volunteers.map((v) => ({
       volunteer: v._id,
-      status: attendance[v._id] || "Absent", // Defaults to Absent if never toggled
+      status: attendance[v._id] || "Absent", // Default to Absent
       date,
     }));
 
@@ -29,6 +38,7 @@ const VolunteerAttendanceBulk = () => {
       await API.post("/volunteer-attendance/bulk", { records });
       alert("Attendance saved successfully!");
     } catch (err) {
+      console.error(err);
       alert("Failed to save. Please try again.");
     }
   };
@@ -56,7 +66,12 @@ const VolunteerAttendanceBulk = () => {
                   Toggle Status
                 </button>
               </td>
-              <td style={{ padding: "10px", fontWeight: "bold", color: attendance[v._id] === "Present" ? "green" : "red" }}>
+              <td style={{ 
+                  padding: "10px", 
+                  fontWeight: "bold", 
+                  color: attendance[v._id] === "Present" ? "green" : "red" 
+                }}
+              >
                 {attendance[v._id] || "Absent"}
               </td>
             </tr>
@@ -65,7 +80,15 @@ const VolunteerAttendanceBulk = () => {
       </table>
       <button 
         onClick={submitAttendance} 
-        style={{ marginTop: "20px", padding: "10px 20px", background: "#2563eb", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
+        style={{ 
+          marginTop: "20px", 
+          padding: "10px 20px", 
+          background: "#2563eb", 
+          color: "white", 
+          border: "none", 
+          borderRadius: "5px", 
+          cursor: "pointer" 
+        }}
       >
         Save All Attendance
       </button>

@@ -10,37 +10,34 @@ function StudentProfile() {
   const [photo, setPhoto] = useState(null);
 
   useEffect(() => {
+    // Functions ko useEffect ke andar define kar diya
+    const fetchStudent = async () => {
+      try {
+        const res = await API.get(`/students/${id}`);
+        setStudent(res.data);
+      } catch (error) {
+        console.error("Error fetching student:", error);
+      }
+    };
+
+    const fetchAttendance = async () => {
+      try {
+        const res = await API.get("/attendance");
+        const studentRecords = res.data.filter(
+          (record) => record.student?._id === id
+        );
+        studentRecords.sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        );
+        setAttendance(studentRecords);
+      } catch (error) {
+        console.error("Error fetching attendance:", error);
+      }
+    };
+
     fetchStudent();
     fetchAttendance();
-  }, []);
-
-  const fetchStudent = async () => {
-    try {
-      const res = await API.get(`/students/${id}`);
-      setStudent(res.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchAttendance = async () => {
-    try {
-      const res = await API.get("/attendance");
-
-      const studentRecords = res.data.filter(
-        (record) => record.student?._id === id
-      );
-
-      studentRecords.sort(
-        (a, b) =>
-          new Date(b.date) - new Date(a.date)
-      );
-
-      setAttendance(studentRecords);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  }, [id]); // id dependency add ki
 
   const uploadPhoto = async () => {
     if (!photo) {
@@ -50,23 +47,17 @@ function StudentProfile() {
 
     try {
       const formData = new FormData();
-
       formData.append("photo", photo);
 
-      await API.post(
-        `/students/upload/${id}`,
-        formData,
-        {
-          headers: {
-            "Content-Type":
-              "multipart/form-data",
-          },
-        }
-      );
+      await API.post(`/students/upload/${id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       alert("Photo Uploaded Successfully");
-
-      fetchStudent();
+      // Page reload ya data refresh ka logic
+      window.location.reload();
     } catch (error) {
       console.error(error);
       alert("Photo Upload Failed");
@@ -84,7 +75,6 @@ function StudentProfile() {
   return (
     <div style={{ padding: "20px" }}>
       <h1>Student Profile</h1>
-
       <div
         style={{
           border: "1px solid #ddd",
@@ -95,7 +85,6 @@ function StudentProfile() {
         }}
       >
         {/* Photo Section */}
-
         {student.photo ? (
           <img
             src={`http://localhost:5000/uploads/${student.photo}`}
@@ -127,19 +116,13 @@ function StudentProfile() {
           </div>
         )}
 
-        <br />
-
         <input
           type="file"
           accept="image/*"
-          onChange={(e) =>
-            setPhoto(e.target.files[0])
-          }
+          onChange={(e) => setPhoto(e.target.files[0])}
         />
-
         <br />
         <br />
-
         <button
           onClick={uploadPhoto}
           style={{
@@ -157,88 +140,31 @@ function StudentProfile() {
         <hr />
 
         {/* Student Details */}
-
-        <h2>
-          {student.rollNumber} - {student.name}
-        </h2>
-
-        <p>
-          <strong>Class:</strong>{" "}
-          {student.class}
-        </p>
-
-        <p>
-          <strong>Age:</strong>{" "}
-          {student.age}
-        </p>
-
-        <p>
-          <strong>Gender:</strong>{" "}
-          {student.gender}
-        </p>
-
-        <p>
-          <strong>Admission Date:</strong>{" "}
-          {student.admissionDate}
-        </p>
-
-        <p>
-          <strong>Father Name:</strong>{" "}
-          {student.fatherName}
-        </p>
-
-        <p>
-          <strong>Mother Name:</strong>{" "}
-          {student.motherName}
-        </p>
-
-        <p>
-          <strong>Mobile:</strong>{" "}
-          {student.phone}
-        </p>
-
-        <p>
-          <strong>Address:</strong>{" "}
-          {student.address}
-        </p>
+        <h2>{student.rollNumber} - {student.name}</h2>
+        <p><strong>Class:</strong> {student.class}</p>
+        <p><strong>Age:</strong> {student.age}</p>
+        <p><strong>Gender:</strong> {student.gender}</p>
+        <p><strong>Admission Date:</strong> {student.admissionDate}</p>
+        <p><strong>Father Name:</strong> {student.fatherName}</p>
+        <p><strong>Mother Name:</strong> {student.motherName}</p>
+        <p><strong>Mobile:</strong> {student.phone}</p>
+        <p><strong>Address:</strong> {student.address}</p>
 
         <hr />
-
-        {/* Attendance Summary */}
-
         <h2>Attendance Summary</h2>
-
-        <p>
-          <strong>Present Days:</strong>{" "}
-          {student.presentDays || 0}
-        </p>
-
-        <p>
-          <strong>Total Attendance Days:</strong>{" "}
-          {student.totalAttendanceDays || 0}
-        </p>
-
-        <p>
-          <strong>Attendance Percentage:</strong>{" "}
-          {student.attendancePercentage || 0}%
-        </p>
+        <p><strong>Present Days:</strong> {student.presentDays || 0}</p>
+        <p><strong>Total Attendance Days:</strong> {student.totalAttendanceDays || 0}</p>
+        <p><strong>Attendance Percentage:</strong> {student.attendancePercentage || 0}%</p>
 
         <hr />
-
-        {/* Attendance History */}
-
         <h2>Attendance History</h2>
-
         {attendance.length === 0 ? (
           <p>No Attendance Records Found</p>
         ) : (
           <table
             border="1"
             cellPadding="10"
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-            }}
+            style={{ width: "100%", borderCollapse: "collapse" }}
           >
             <thead>
               <tr>
@@ -246,19 +172,13 @@ function StudentProfile() {
                 <th>Status</th>
               </tr>
             </thead>
-
             <tbody>
               {attendance.map((record) => (
                 <tr key={record._id}>
                   <td>{record.date}</td>
-
                   <td
                     style={{
-                      color:
-                        record.status ===
-                        "Present"
-                          ? "green"
-                          : "red",
+                      color: record.status === "Present" ? "green" : "red",
                       fontWeight: "bold",
                     }}
                   >
