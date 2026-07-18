@@ -4,12 +4,11 @@ import Layout from "../components/Layout";
 
 const AttendanceReport = () => {
   const [dates, setDates] = useState({ start: "", end: "" });
-  const [category, setCategory] = useState("all"); // Naya state: category ke liye
+  const [category, setCategory] = useState("all");
   const [report, setReport] = useState([]);
 
   const generateReport = async () => {
     try {
-      // Sirf select ki gayi category ka data fetch karenge
       let data = [];
       if (category === "students" || category === "all") {
         const res = await API.get("/attendance");
@@ -41,52 +40,74 @@ const AttendanceReport = () => {
 
   const downloadCSV = () => {
     const headers = ["Date", "Name", "Status", "Category"];
-    const csvContent = [headers.join(","), ...report.map(r => [r.Date, r.Name, r.Status, r.Category].join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    
+    // Excel-friendly CSV generation: 
+    // 1. Double quotes around fields to handle special characters/formatting
+    // 2. \uFEFF (BOM) to force UTF-8 so Excel displays correctly
+    const csvRows = report.map(r => 
+      [r.Date, r.Name, r.Status, r.Category]
+        .map(val => `"${val}"`)
+        .join(",")
+    );
+
+    const csvContent = [headers.join(","), ...csvRows].join("\n");
+    const blob = new Blob(["\uFEFF", csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
+    
     const a = document.createElement('a');
     a.href = url;
     a.download = `Attendance_${category}_Report.csv`;
     a.click();
+    window.URL.revokeObjectURL(url); // Memory cleanup
   };
 
   return (
     <Layout title="Attendance Report">
       <div style={{ padding: "20px" }}>
-        <h2>📅 Attendance Report</h2>
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
-          <input type="date" onChange={(e) => setDates({...dates, start: e.target.value})} />
-          <input type="date" onChange={(e) => setDates({...dates, end: e.target.value})} />
+        <h2 style={{ color: "#1e3a8a", marginBottom: "20px" }}>📅 Attendance Report</h2>
+        
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap", alignItems: "center" }}>
+          <label>Start: <input type="date" onChange={(e) => setDates({...dates, start: e.target.value})} style={{ padding: "8px" }} /></label>
+          <label>End: <input type="date" onChange={(e) => setDates({...dates, end: e.target.value})} style={{ padding: "8px" }} /></label>
           
-          {/* Dropdown for Category Selection */}
-          <select onChange={(e) => setCategory(e.target.value)} style={{ padding: "10px" }}>
+          <select onChange={(e) => setCategory(e.target.value)} style={{ padding: "9px" }}>
             <option value="all">All Records</option>
-            <option value="students">Students Only</option>
-            <option value="interns">Interns Only</option>
-            <option value="volunteers">Volunteers Only</option>
+            <option value="students">Students</option>
+            <option value="interns">Interns</option>
+            <option value="volunteers">Volunteers</option>
           </select>
 
-          <button onClick={generateReport} style={{ padding: "10px 15px" }}>Generate</button>
+          <button onClick={generateReport} style={{ padding: "9px 20px", background: "#1e3a8a", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>Generate</button>
           
           {report.length > 0 && (
-            <button onClick={downloadCSV} style={{ padding: "10px", background: "#16a34a", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
-              ⬇️ Download {category.toUpperCase()} CSV
+            <button onClick={downloadCSV} style={{ padding: "9px 20px", background: "#16a34a", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
+              ⬇️ Download CSV
             </button>
           )}
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#f1f5f9" }}><th>Date</th><th>Name</th><th>Status</th><th>Category</th></tr>
-          </thead>
-          <tbody>
-            {report.map((r, i) => (
-              <tr key={i} style={{ borderBottom: "1px solid #ddd" }}>
-                <td>{r.Date}</td><td>{r.Name}</td><td>{r.Status}</td><td>{r.Category}</td>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <thead>
+              <tr style={{ background: "#f1f5f9", color: "#334155" }}>
+                <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>Date</th>
+                <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>Name</th>
+                <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>Status</th>
+                <th style={{ padding: "12px", borderBottom: "2px solid #ddd" }}>Category</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {report.map((r, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: "10px" }}>{r.Date}</td>
+                  <td style={{ padding: "10px" }}>{r.Name}</td>
+                  <td style={{ padding: "10px" }}>{r.Status}</td>
+                  <td style={{ padding: "10px" }}>{r.Category}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </Layout>
   );

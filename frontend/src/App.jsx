@@ -1,8 +1,12 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom"; 
 import Sidebar from "./components/Sidebar";
-import AllProjects from "./pages/AllProjects"; // Naya Import
-import EditProject from "./pages/EditProject";
-// ======= STUDENTS COMPONENTS =======
+import Login from "./pages/Login"; 
+import ProtectedRoute from "./components/ProtectedRoute"; 
+
+// Pages Imports
+import AdminDashboard from "./pages/AdminDashboard";
+import ManagerDashboard from "./pages/ManagerDashboard";
+import MyRequests from "./pages/MyRequests";
 import Students from "./pages/Students";
 import AddStudent from "./pages/AddStudent";
 import StudentProfile from "./pages/StudentProfile";
@@ -10,8 +14,6 @@ import Attendance from "./pages/Attendance";
 import StudentIdCard from './pages/StudentIdCard';
 import AttendanceHistory from "./pages/AttendanceHistory";
 import DateWiseAttendance from "./pages/DateWiseAttendance";
-
-// ======= INTERNS COMPONENTS =======
 import Interns from "./pages/Interns";
 import AddIntern from "./pages/AddIntern";
 import InternAttendance from "./pages/InternAttendance";
@@ -22,9 +24,8 @@ import OfferLetter from "./pages/OfferLetter";
 import InternCertificate from "./pages/InternCertificate";
 import EditIntern from "./pages/EditIntern";
 import AddProject from "./pages/AddProject";
-
-
-// ======= VOLUNTEERS COMPONENTS =======
+import AllProjects from "./pages/AllProjects";
+import EditProject from "./pages/EditProject";
 import Volunteers from "./pages/Volunteers";
 import VolunteerProfile from "./pages/VolunteerProfile";
 import VolunteerAllHistory from "./pages/VolunteerAllHistory";
@@ -34,71 +35,73 @@ import VolunteerAttendanceHistory from "./pages/VolunteerAttendanceHistory";
 import VolunteerIdCard from "./pages/VolunteerIdCard";
 import EditVolunteer from "./pages/EditVolunteer";
 import VolunteerAttendanceBulk from './pages/VolunteerAttendanceBulk';
-
-// ======= DASHBOARD, SETTINGS & ANNOUNCEMENTS =======
-import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import AllAnnouncements from "./pages/AllAnnouncements";
 import AttendanceReport from "./pages/AttendanceReport";
+// Naya import
+import UserList from "./components/UserList"; 
 
 function App() {
+  const location = useLocation();
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      {/* Top Navbar / Dropdown Sidebar Menu */}
-      <Sidebar />
+      {location.pathname !== "/login" && <Sidebar />}
 
-      {/* Main Content Render Area */}
       <div style={{ flex: 1, padding: "20px" }} className="main-content">
         <Routes>
-          {/* Dashboard Home Route */}
-          <Route path="/" element={<Dashboard />} />
+          {/* Public Route */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Navigate to="/admin-dashboard" />} />
+
+          {/* Dashboards */}
+          <Route path="/admin-dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/manager-dashboard" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><ManagerDashboard /></ProtectedRoute>} />
+          <Route path="/my-requests" element={<ProtectedRoute allowedRoles={['manager']}><MyRequests /></ProtectedRoute>} />
           
-          {/* Settings Route */}
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/all-projects" element={<AllProjects />} />
-          <Route path="/edit-project/:id" element={<EditProject />} />
+          {/* User Management Route */}
+          <Route path="/user-management" element={<ProtectedRoute allowedRoles={['admin']}><UserList /></ProtectedRoute>} />
 
-          {/* All Announcements Route */}
-          <Route path="/all-announcements" element={<AllAnnouncements />} />
+          {/* Settings & Announcements */}
+          <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Settings /></ProtectedRoute>} />
+          <Route path="/all-announcements" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AllAnnouncements /></ProtectedRoute>} />
+          <Route path="/attendance-report" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AttendanceReport /></ProtectedRoute>} />
 
-          {/* ==========================================
-              STUDENTS ROUTES
-              ========================================== */}
-          <Route path="/students" element={<Students />} />
-          <Route path="/add-student" element={<AddStudent />} />
-          <Route path="/student/:id" element={<StudentProfile />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/student/id-card/:id" element={<StudentIdCard />} />
-          <Route path="/attendance-history" element={<AttendanceHistory />} />
-          <Route path="/date-wise-attendance" element={<DateWiseAttendance />} />
+          {/* PROJECTS */}
+          <Route path="/all-projects" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AllProjects /></ProtectedRoute>} />
+          <Route path="/edit-project/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditProject /></ProtectedRoute>} />
+          <Route path="/add-project" element={<ProtectedRoute allowedRoles={['admin']}><AddProject /></ProtectedRoute>} />
 
-          {/* ==========================================
-              INTERNS ROUTES
-              ========================================== */}
-          <Route path="/interns" element={<Interns />} />
-          <Route path="/add-intern" element={<AddIntern />} />
-          <Route path="/intern/:id" element={<InternProfile />} />
-          <Route path="/intern-id/:id" element={<InternIdCard />} />
-          <Route path="/offer-letter/:id" element={<OfferLetter />} />
-          <Route path="/intern-certificate/:id" element={<InternCertificate />} />
-          <Route path="/edit-intern/:id" element={<EditIntern />} />
-          <Route path="/intern-attendance" element={<InternAttendance />} />
-          <Route path="/intern-attendance-history" element={<InternAttendanceHistory />} />
-          <Route path="/add-project" element={<AddProject />} />
+          {/* STUDENTS */}
+          <Route path="/students" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Students /></ProtectedRoute>} />
+          <Route path="/add-student" element={<ProtectedRoute allowedRoles={['admin']}><AddStudent /></ProtectedRoute>} />
+          <Route path="/student/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><StudentProfile /></ProtectedRoute>} />
+          <Route path="/attendance" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Attendance /></ProtectedRoute>} />
+          <Route path="/student/id-card/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><StudentIdCard /></ProtectedRoute>} />
+          <Route path="/attendance-history" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AttendanceHistory /></ProtectedRoute>} />
+          <Route path="/date-wise-attendance" element={<ProtectedRoute><DateWiseAttendance /></ProtectedRoute>} />
 
-          {/* ==========================================
-              VOLUNTEERS ROUTES
-              ========================================== */}
-          <Route path="/volunteers" element={<Volunteers />} />
-          <Route path="/add-volunteer" element={<AddVolunteer />} />
-          <Route path="/volunteer/:id" element={<VolunteerProfile />} />
-          <Route path="/volunteer-date-attendance" element={<VolunteerAllHistory />} />
-          <Route path="/volunteer-attendance/:id" element={<VolunteerAttendance />} />
-          <Route path="/volunteer-history/:id" element={<VolunteerAttendanceHistory />} />
-          <Route path="/volunteer-id/:id" element={<VolunteerIdCard />} />
-          <Route path="/edit-volunteer/:id" element={<EditVolunteer />} />
-          <Route path="/volunteer/bulk-attendance" element={<VolunteerAttendanceBulk />} />
-          <Route path="/attendance-report" element={<AttendanceReport />} />
+          {/* INTERNS */}
+          <Route path="/interns" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Interns /></ProtectedRoute>} />
+          <Route path="/add-intern" element={<ProtectedRoute allowedRoles={['admin']}><AddIntern /></ProtectedRoute>} />
+          <Route path="/intern/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><InternProfile /></ProtectedRoute>} />
+          <Route path="/intern-id/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><InternIdCard /></ProtectedRoute>} />
+          <Route path="/offer-letter/:id" element={<ProtectedRoute allowedRoles={['admin']}><OfferLetter /></ProtectedRoute>} />
+          <Route path="/intern-certificate/:id" element={<ProtectedRoute allowedRoles={['admin']}><InternCertificate /></ProtectedRoute>} />
+          <Route path="/edit-intern/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditIntern /></ProtectedRoute>} />
+          <Route path="/intern-attendance" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><InternAttendance /></ProtectedRoute>} />
+          <Route path="/intern-attendance-history" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><InternAttendanceHistory /></ProtectedRoute>} />
+
+          {/* VOLUNTEERS */}
+          <Route path="/volunteers" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Volunteers /></ProtectedRoute>} />
+          <Route path="/add-volunteer" element={<ProtectedRoute allowedRoles={['admin']}><AddVolunteer /></ProtectedRoute>} />
+          <Route path="/volunteer/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><VolunteerProfile /></ProtectedRoute>} />
+          <Route path="/volunteer-date-attendance" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><VolunteerAllHistory /></ProtectedRoute>} />
+          <Route path="/volunteer-attendance/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><VolunteerAttendance /></ProtectedRoute>} />
+          <Route path="/volunteer-history/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><VolunteerAttendanceHistory /></ProtectedRoute>} />
+          <Route path="/volunteer-id/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><VolunteerIdCard /></ProtectedRoute>} />
+          <Route path="/edit-volunteer/:id" element={<ProtectedRoute allowedRoles={['admin']}><EditVolunteer /></ProtectedRoute>} />
+          <Route path="/volunteer/bulk-attendance" element={<ProtectedRoute allowedRoles={['admin']}><VolunteerAttendanceBulk /></ProtectedRoute>} />
         </Routes>
       </div>
     </div>

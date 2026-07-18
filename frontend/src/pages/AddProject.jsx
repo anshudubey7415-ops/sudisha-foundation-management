@@ -1,34 +1,47 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api";
 import Layout from "../components/Layout";
 
 const AddProject = () => {
+  const navigate = useNavigate();
   const [project, setProject] = useState({ title: "", description: "", startDate: "", endDate: "", members: [] });
   const [options, setOptions] = useState([]);
 
+  // Role Based Access Check
+  useEffect(() => {
+    const userRole = localStorage.getItem("role") || "";
+    if (userRole.toLowerCase() !== "admin") {
+      alert("Access Denied: Only Admins can create projects");
+      navigate("/admin-dashboard");
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const fetchData = async () => {
-      const [sRes, iRes, vRes] = await Promise.all([
-        API.get("/students"),
-        API.get("/interns"),
-        API.get("/volunteers")
-      ]);
+      try {
+        const [sRes, iRes, vRes] = await Promise.all([
+          API.get("/students"),
+          API.get("/interns"),
+          API.get("/volunteers")
+        ]);
 
-      // Sirf 'Active' status wale members ko filter kar rahe hain
-      // ID show karne ke liye slice(-4) use kiya hai taaki UI clean rahe
-      const formatData = (data, type) => 
-        data.filter(m => m.status === "Active").map(m => ({
-          id: m._id,
-          label: `${m.name} (ID: ${m._id.slice(-4)}) [${type}]`,
-          type: type
-        }));
+        const formatData = (data, type) => 
+          data.filter(m => m.status === "Active").map(m => ({
+            id: m._id,
+            label: `${m.name} (ID: ${m._id.slice(-4)}) [${type}]`,
+            type: type
+          }));
 
-      const formatted = [
-        ...formatData(sRes.data, "Student"),
-        ...formatData(iRes.data, "Intern"),
-        ...formatData(vRes.data, "Volunteer")
-      ];
-      setOptions(formatted);
+        const formatted = [
+          ...formatData(sRes.data, "Student"),
+          ...formatData(iRes.data, "Intern"),
+          ...formatData(vRes.data, "Volunteer")
+        ];
+        setOptions(formatted);
+      } catch (err) {
+        console.error("Error fetching members:", err);
+      }
     };
     fetchData();
   }, []);
@@ -46,8 +59,14 @@ const AddProject = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await API.post("/projects", project);
-    alert("Project Created Successfully!");
+    try {
+      await API.post("/projects", project);
+      alert("Project Created Successfully!");
+      navigate("/projects"); // Optional: Navigate back after success
+    } catch (err) {
+      console.error("Error creating project:", err);
+      alert("Failed to create project");
+    }
   };
 
   return (

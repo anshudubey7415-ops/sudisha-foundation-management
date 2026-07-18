@@ -1,184 +1,107 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 
 function Sidebar() {
-  const [showStudents, setShowStudents] = useState(false);
-  const [showInterns, setShowInterns] = useState(false);
-  const [showVolunteers, setShowVolunteers] = useState(false);
+  const [activeMenu, setActiveMenu] = useState(null);
+  const location = useLocation();
+  const userRole = localStorage.getItem("role");
 
-  // Dropdown ke andar ke links ke liye common clean style
-  const linkStyle = {
-    color: "#1e293b",
+  // Royal Blue Theme Logic
+  const getLinkStyle = (path) => ({
+    color: location.pathname === path ? "#1e3a8a" : "#475569",
     textDecoration: "none",
+    fontWeight: location.pathname === path ? "600" : "500",
+    fontSize: "14px",
+    padding: "12px 30px",
+    display: "block",
+    backgroundColor: location.pathname === path ? "#eff6ff" : "transparent",
+    // Blue Border Left
+    borderLeft: location.pathname === path ? "4px solid #1e3a8a" : "4px solid transparent",
+    transition: "all 0.2s ease"
+  });
+
+  const navButtonStyle = (menuName) => ({
+    background: activeMenu === menuName ? "rgba(255,255,255,0.2)" : "transparent",
+    border: "none",
+    color: "white",
+    cursor: "pointer",
+    fontSize: "14px",
     fontWeight: "500",
-    fontSize: "15px",
-    padding: "4px 0",
-    transition: "color 0.2s"
-  };
+    padding: "10px 20px",
+    borderRadius: "6px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    transition: "all 0.3s"
+  });
 
   return (
-    <div style={{ width: "100%" }}>
-
-      {/* =====================
-          TOP NAVBAR
-      ===================== */}
-      <div
-        style={{
-          background: "#2563eb",
-          padding: "18px",
-          display: "flex",
-          gap: "40px",
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <Link
-          to="/"
-          style={{
-            color: "white",
-            textDecoration: "none",
-            fontSize: "22px",
-            fontWeight: "bold",
-          }}
-        >
-          Dashboard
+    <div style={{ width: "100%", fontFamily: "'Inter', sans-serif" }}>
+      {/* PROFESSIONAL ROYAL BLUE NAVBAR */}
+      <div style={{ 
+        background: "#1e3a8a", 
+        padding: "15px 30px", 
+        display: "flex", 
+        gap: "20px", 
+        alignItems: "center", 
+        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" 
+      }}>
+        <Link to="/admin-dashboard" style={{ color: "#ffffff", textDecoration: "none", fontSize: "18px", fontWeight: "700", marginRight: "20px", display: "flex", alignItems: "center" }}>
+          🏢 Sudisha Portal
         </Link>
-
-        {/* Students Toggle Button */}
-        <button
-          onClick={() => {
-            setShowStudents(!showStudents);
-            setShowInterns(false);
-            setShowVolunteers(false);
-          }}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "white",
-            fontSize: "18px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          Students {showStudents ? "▲" : "▼"}
+        
+        <button onClick={() => setActiveMenu(activeMenu === "students" ? null : "students")} style={navButtonStyle("students")}>
+          Students {activeMenu === "students" ? "▲" : "▼"}
         </button>
-
-        {/* Interns Toggle Button */}
-        <button
-          onClick={() => {
-            setShowInterns(!showInterns);
-            setShowStudents(false);
-            setShowVolunteers(false);
-          }}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "white",
-            fontSize: "18px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          Interns {showInterns ? "▲" : "▼"}
+        <button onClick={() => setActiveMenu(activeMenu === "interns" ? null : "interns")} style={navButtonStyle("interns")}>
+          Interns {activeMenu === "interns" ? "▲" : "▼"}
         </button>
-
-        {/* Volunteers Toggle Button */}
-        <button
-          onClick={() => {
-            setShowVolunteers(!showVolunteers);
-            setShowStudents(false);
-            setShowInterns(false);
-          }}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "white",
-            fontSize: "18px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          Volunteers {showVolunteers ? "▲" : "▼"}
+        <button onClick={() => setActiveMenu(activeMenu === "volunteers" ? null : "volunteers")} style={navButtonStyle("volunteers")}>
+          Volunteers {activeMenu === "volunteers" ? "▲" : "▼"}
         </button>
-
-        {/* Attendance Report Link (Directly in Navbar) */}
-        <Link 
-          to="/attendance-report" 
-          style={{ 
-            color: "#f59e0b", 
-            textDecoration: "none", 
-            fontWeight: "bold", 
-            fontSize: "18px",
-            marginLeft: "auto" // Right side push karne ke liye
-          }}
-        >
-          📊 Attendance Report
+        
+        <Link to="/attendance-report" style={{ 
+            color: "#fbbf24", marginLeft: "auto", textDecoration: "none", 
+            fontSize: "14px", fontWeight: "800", display: "flex", alignItems: "center", gap: "5px" 
+        }}>
+          📊Attendance Report
         </Link>
       </div>
 
-      {/* =====================
-          STUDENTS DROPDOWN MENU
-      ===================== */}
-      {showStudents && (
-        <div
-          style={{
-            background: "#f3f4f6",
-            padding: "12px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            borderBottom: "1px solid #e5e7eb"
-          }}
-        >
-          <Link to="/students" style={linkStyle}>Student Details</Link>
-          <Link to="/add-student" style={linkStyle}>Add Student</Link>
-          <Link to="/attendance" style={linkStyle}>Attendance</Link>
-          <Link to="/attendance-history" style={linkStyle}>Attendance History</Link>
-          <Link to="/date-wise-attendance" style={linkStyle}>Date Wise Attendance</Link>
-        </div>
-      )}
+      {/* DROPDOWNS */}
+      {activeMenu && (
+        <div style={{ 
+          background: "#ffffff", 
+          borderBottom: "1px solid #e2e8f0",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+        }}>
+          {activeMenu === "students" && (
+            <div>
+              <Link to="/students" style={getLinkStyle("/students")}>Student Details</Link>
+              {userRole === "admin" && <Link to="/add-student" style={getLinkStyle("/add-student")}>Add Student</Link>}
+              <Link to="/attendance" style={getLinkStyle("/attendance")}>Attendance</Link>
+              <Link to="/attendance-history" style={getLinkStyle("/attendance-history")}>Attendance History</Link>
+            </div>
+          )}
 
-      {/* =====================
-          INTERNS DROPDOWN MENU
-      ===================== */}
-      {showInterns && (
-        <div
-          style={{
-            background: "#ede9fe",
-            padding: "12px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            borderBottom: "1px solid #ddd6fe"
-          }}
-        >
-          <Link to="/interns" style={linkStyle}>Intern Details</Link>
-          <Link to="/add-intern" style={linkStyle}>Add Intern</Link>
-          <Link to="/intern-attendance" style={linkStyle}>Intern Attendance</Link>
-          <Link to="/intern-attendance-history" style={linkStyle}>Attendance History</Link>
-          <Link to="/add-project" style={linkStyle}>🚀 Assign Project</Link>
-          <Link to="/all-projects" style={linkStyle}>📋 View All Projects</Link>
-        </div>
-      )}
+          {activeMenu === "interns" && (
+            <div>
+              <Link to="/interns" style={getLinkStyle("/interns")}>Intern Details</Link>
+              {userRole === "admin" && <Link to="/add-intern" style={getLinkStyle("/add-intern")}>Add Intern</Link>}
+              <Link to="/intern-attendance" style={getLinkStyle("/intern-attendance")}>Intern Attendance</Link>
+              <Link to="/all-projects" style={getLinkStyle("/all-projects")}>All Projects</Link>
+              {userRole === "admin" && <Link to="/add-project" style={getLinkStyle("/add-project")}>Assign Project</Link>}
+            </div>
+          )}
 
-      {/* =====================
-          VOLUNTEERS DROPDOWN MENU
-      ===================== */}
-      {showVolunteers && (
-        <div
-          style={{
-            background: "#ecfdf5",
-            padding: "12px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            borderBottom: "1px solid #a7f3d0"
-          }}
-        >
-          <Link to="/volunteers" style={linkStyle}>Volunteer Details</Link>
-          <Link to="/add-volunteer" style={linkStyle}>Add Volunteer</Link>
-          <Link to="/volunteer-date-attendance" style={linkStyle}>Date Wise Attendance</Link>
-          <Link to="/volunteer/bulk-attendance" style={linkStyle}>Volunteer Attendance List</Link>
+          {activeMenu === "volunteers" && (
+            <div>
+              <Link to="/volunteers" style={getLinkStyle("/volunteers")}>Volunteer Details</Link>
+              {userRole === "admin" && <Link to="/add-volunteer" style={getLinkStyle("/add-volunteer")}>Add Volunteer</Link>}
+              <Link to="/volunteer-date-attendance" style={getLinkStyle("/volunteer-date-attendance")}>Attendance History</Link>
+              {userRole === "admin" && <Link to="/volunteer/bulk-attendance" style={getLinkStyle("/volunteer/bulk-attendance")}>Bulk Attendance</Link>}
+            </div>
+          )}
         </div>
       )}
     </div>

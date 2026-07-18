@@ -1,12 +1,16 @@
-import ReactDOM from "react-dom/client"; // 'import React' hata diya
+import ReactDOM from "react-dom/client"; 
 import App from "./App";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
+// AuthProvider ko sahi file se import karo
+import { AuthProvider } from "./context/AuthProvider"; 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </AuthProvider>
   </BrowserRouter>
 );
