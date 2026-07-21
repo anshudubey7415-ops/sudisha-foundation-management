@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://sudisha-foundation-management.onrender.com",
+  baseURL: "https://sudisha-foundation-management.onrender.com/api",
 });
 
 // Interceptor add kar diya hai
