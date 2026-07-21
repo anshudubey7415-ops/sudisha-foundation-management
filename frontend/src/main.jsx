@@ -1,5 +1,5 @@
 import ReactDOM from "react-dom/client"; 
-import App from "./App";
+import App from "./App.jsx";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 // AuthProvider ko sahi file se import karo
