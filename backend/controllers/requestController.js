@@ -1,5 +1,5 @@
 import Request from '../models/Request.js';
-import Student from '../models/Student.js';
+import Student from '../models/student.js';
 import Intern from '../models/Intern.js';
 import Volunteer from '../models/Volunteer.js';
 
