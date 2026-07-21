@@ -75,7 +75,7 @@ function ManagerDashboard() {
   return (
     <div style={{ padding: "30px", background: "#f8fafc", minHeight: "100vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
-        <h1 style={{ color: "#1e3a8a", margin: 0 }}>Manager Dashboard</h1>
+        <h1 style={{ color: "#1e3a8a", margin: 0 }}>Manager Dashboard Sudisha </h1>
         <div style={{ display: "flex", gap: "10px" }}>
           <button onClick={() => navigate("/all-announcements")} style={{ padding: "10px", background: "#8b5cf6", color: "white", border: "none", borderRadius: "5px" }}>Announcements</button>
           <button onClick={() => navigate("/settings")} style={{ padding: "10px", background: "#334155", color: "white", border: "none", borderRadius: "5px" }}>Settings</button>
