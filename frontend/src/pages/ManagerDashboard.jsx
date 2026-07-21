@@ -121,7 +121,7 @@ function ManagerDashboard() {
         ))}
       </div>
 
-      <h3 style={{ color: "#334155" }}>📚 Analytics Overview</h3>
+      <h3 style={{ color: "#334155" }}>📚 Analytics-Overview</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
         <Card title="Total Students" count={stats.students.total} color="#2563eb" />
         <Card title="Present Students" count={stats.students.present} color="#16a34a" onClick={() => { setSelectedTitle("Present Students"); setSelectedList(todayRecords.students.filter(r => r.status === "Present")); }} />
@@ -143,7 +143,7 @@ function ManagerDashboard() {
         </div>
       )}
 
-      <h3 style={{ marginTop: "30px", color: "#334155" }}>📊 Visual Insights</h3>
+      <h3 style={{ marginTop: "30px", color: "#334155" }}>📊 Visual-Insights</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
         <div style={{ background: "white", padding: "20px", borderRadius: "8px" }}>
           <h4>Project Status</h4>
