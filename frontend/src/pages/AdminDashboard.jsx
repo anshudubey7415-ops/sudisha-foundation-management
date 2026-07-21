@@ -115,7 +115,12 @@ function AdminDashboard() {
       </div>
 
       <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", marginBottom: "30px", border: "1px solid #e2e8f0" }}>
-        <h3 style={{ color: "#1e3a8a", marginTop: 0 }}>Pending Requests ({requests.length})</h3>
+        <h3 
+            style={{ color: "#1e3a8a", marginTop: 0, cursor: "pointer", display: "inline-block" }} 
+            onClick={() => navigate("/admin-requests")} // Yahan click karne par navigate hoga
+        >
+            Pending Requests ({requests.length}) ➔
+        </h3>
         {requests.map(req => (
           <div key={req._id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
             <span><strong>{req.userName}</strong> - {req.requestType}</span>

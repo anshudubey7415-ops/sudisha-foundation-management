@@ -16,34 +16,75 @@ const Attendance = () => {
     fetchStudents();
   }, []);
 
-  // Styles object
   const styles = {
-    container: { backgroundColor: '#0f172a', minHeight: '100vh', padding: '20px', color: 'white', borderRadius: '20px' },
-    card: { backgroundColor: '#1e293b', padding: '20px', borderRadius: '15px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #334155' },
+    container: { 
+      backgroundColor: '#f8fafc', // Light clean gray background
+      minHeight: '100vh', 
+      padding: '40px 20px', 
+      color: '#1e293b', 
+      maxWidth: '900px', 
+      margin: '0 auto',
+      fontFamily: "'Inter', sans-serif" 
+    },
+    headerSection: { marginBottom: '30px', borderBottom: '2px solid #e2e8f0', paddingBottom: '20px' },
+    card: { 
+      backgroundColor: '#ffffff', 
+      padding: '16px 24px', 
+      borderRadius: '8px', 
+      marginBottom: '10px', 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+    },
     btn: (isActive, color) => ({
-      padding: '10px 20px', borderRadius: '10px', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer',
-      backgroundColor: isActive ? color : '#475569', boxShadow: isActive ? `0 0 15px ${color}` : 'none', transition: '0.3s'
-    })
+      padding: '8px 16px', 
+      borderRadius: '6px', 
+      border: isActive ? `1px solid ${color}` : '1px solid #cbd5e1', 
+      color: isActive ? color : '#64748b', 
+      fontWeight: '600', 
+      cursor: 'pointer',
+      backgroundColor: isActive ? `${color}15` : 'transparent', // Transparent tint
+      transition: 'all 0.2s ease'
+    }),
+    submitBtn: { 
+      marginTop: '20px',
+      width: '100%', 
+      padding: '12px', 
+      background: '#1e3a8a', // Royal Blue
+      border: 'none', 
+      borderRadius: '6px', 
+      color: 'white', 
+      fontWeight: '600', 
+      fontSize: '16px', 
+      cursor: 'pointer' 
+    }
   };
 
   return (
     <div style={styles.container}>
-      <h1 style={{ color: '#38bdf8', fontSize: '32px', marginBottom: '20px' }}>Attendance Tracker</h1>
-      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ padding: '10px', borderRadius: '10px', marginBottom: '20px', background: '#334155', border: 'none', color: 'white' }} />
+      <div style={styles.headerSection}>
+        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Attendance Tracker</h1>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} 
+          style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+      </div>
 
       {students.map((student) => (
         <div key={student._id} style={styles.card}>
           <div>
-            <strong style={{ fontSize: '18px' }}>{student.name}</strong><br/>
-            <span style={{ color: '#94a3b8' }}>Roll No: {student.rollNumber || 'N/A'}</span>
+            <div style={{ fontWeight: '600', fontSize: '16px' }}>{student.name}</div>
+            <div style={{ color: '#64748b', fontSize: '13px' }}>Roll: {student.rollNumber || 'N/A'}</div>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button style={styles.btn(attendance[student._id] === 'Present', '#10b981')} onClick={() => setAttendance(prev => ({...prev, [student._id]: 'Present'}))}>Present</button>
-            <button style={styles.btn(attendance[student._id] === 'Absent', '#f43f5e')} onClick={() => setAttendance(prev => ({...prev, [student._id]: 'Absent'}))}>Absent</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button style={styles.btn(attendance[student._id] === 'Present', '#059669')} onClick={() => setAttendance(prev => ({...prev, [student._id]: 'Present'}))}>Present</button>
+            <button style={styles.btn(attendance[student._id] === 'Absent', '#dc2626')} onClick={() => setAttendance(prev => ({...prev, [student._id]: 'Absent'}))}>Absent</button>
           </div>
         </div>
       ))}
-      <button onClick={async () => { await axios.post('/api/attendance/bulk', { records: Object.keys(attendance).map(id => ({student: id, date, status: attendance[id]})) }); alert("Saved!"); }} style={{ width: '100%', padding: '15px', background: '#6366f1', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer' }}>Submit Records</button>
+      <button onClick={async () => { await axios.post('/api/attendance/bulk', { records: Object.keys(attendance).map(id => ({student: id, date, status: attendance[id]})) }); alert("Saved!"); }} style={styles.submitBtn}>
+        Submit Attendance Records
+      </button>
     </div>
   );
 };

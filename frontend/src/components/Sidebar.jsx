@@ -4,7 +4,7 @@ import { useState } from "react";
 function Sidebar() {
   const [activeMenu, setActiveMenu] = useState(null);
   const location = useLocation();
-  const userRole = localStorage.getItem("role");
+  const userRole = localStorage.getItem("role")?.toLowerCase();
 
   // Royal Blue Theme Logic
   const getLinkStyle = (path) => ({
@@ -12,10 +12,9 @@ function Sidebar() {
     textDecoration: "none",
     fontWeight: location.pathname === path ? "600" : "500",
     fontSize: "14px",
-    padding: "12px 30px",
+    padding: "6px 30px",
     display: "block",
     backgroundColor: location.pathname === path ? "#eff6ff" : "transparent",
-    // Blue Border Left
     borderLeft: location.pathname === path ? "4px solid #1e3a8a" : "4px solid transparent",
     transition: "all 0.2s ease"
   });
@@ -46,7 +45,7 @@ function Sidebar() {
         alignItems: "center", 
         boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" 
       }}>
-        <Link to="/admin-dashboard" style={{ color: "#ffffff", textDecoration: "none", fontSize: "18px", fontWeight: "700", marginRight: "20px", display: "flex", alignItems: "center" }}>
+        <Link to={userRole === "admin" ? "/admin-dashboard" : "/manager-dashboard"} style={{ color: "#ffffff", textDecoration: "none", fontSize: "18px", fontWeight: "700", marginRight: "20px", display: "flex", alignItems: "center" }}>
           🏢 Sudisha Portal
         </Link>
         
@@ -78,28 +77,30 @@ function Sidebar() {
           {activeMenu === "students" && (
             <div>
               <Link to="/students" style={getLinkStyle("/students")}>Student Details</Link>
-              {userRole === "admin" && <Link to="/add-student" style={getLinkStyle("/add-student")}>Add Student</Link>}
+              {(userRole === "admin" || userRole === "manager") && <Link to="/add-student" style={getLinkStyle("/add-student")}>Add Student</Link>}
               <Link to="/attendance" style={getLinkStyle("/attendance")}>Attendance</Link>
               <Link to="/attendance-history" style={getLinkStyle("/attendance-history")}>Attendance History</Link>
+              <Link to="/date-wise-attendance" style={getLinkStyle("/date-wise-attendance")}>Date-wise Attendance History</Link>
             </div>
           )}
 
           {activeMenu === "interns" && (
             <div>
               <Link to="/interns" style={getLinkStyle("/interns")}>Intern Details</Link>
-              {userRole === "admin" && <Link to="/add-intern" style={getLinkStyle("/add-intern")}>Add Intern</Link>}
+              {(userRole === "admin" || userRole === "manager") && <Link to="/add-intern" style={getLinkStyle("/add-intern")}>Add Intern</Link>}
               <Link to="/intern-attendance" style={getLinkStyle("/intern-attendance")}>Intern Attendance</Link>
+              <Link to="/intern-attendance-history" style={getLinkStyle("/intern-attendance-history")}>Attendance History</Link>
               <Link to="/all-projects" style={getLinkStyle("/all-projects")}>All Projects</Link>
-              {userRole === "admin" && <Link to="/add-project" style={getLinkStyle("/add-project")}>Assign Project</Link>}
+              {(userRole === "admin" || userRole === "manager") && <Link to="/add-project" style={getLinkStyle("/add-project")}>Assign Project</Link>}
             </div>
           )}
 
           {activeMenu === "volunteers" && (
             <div>
               <Link to="/volunteers" style={getLinkStyle("/volunteers")}>Volunteer Details</Link>
-              {userRole === "admin" && <Link to="/add-volunteer" style={getLinkStyle("/add-volunteer")}>Add Volunteer</Link>}
+              {(userRole === "admin" || userRole === "manager") && <Link to="/add-volunteer" style={getLinkStyle("/add-volunteer")}>Add Volunteer</Link>}
               <Link to="/volunteer-date-attendance" style={getLinkStyle("/volunteer-date-attendance")}>Attendance History</Link>
-              {userRole === "admin" && <Link to="/volunteer/bulk-attendance" style={getLinkStyle("/volunteer/bulk-attendance")}>Bulk Attendance</Link>}
+              {(userRole === "admin" || userRole === "manager") && <Link to="/volunteer/bulk-attendance" style={getLinkStyle("/volunteer/bulk-attendance")}>Bulk Attendance</Link>}
             </div>
           )}
         </div>

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import API from "../api";
 
-const RequestForm = ({ targetUserId, currentData, onClose }) => {
+const RequestForm = ({ targetUserId, targetCollection, currentData, onClose }) => {
   const [changes, setChanges] = useState({ ...currentData });
-  const [reason, setReason] = useState(""); // Naya: Reason track karne ke liye
+  const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Jin fields ko edit nahi karne dena
@@ -13,11 +13,13 @@ const RequestForm = ({ targetUserId, currentData, onClose }) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Yahan ab 'targetCollection' bhi bheja ja raha hai
       await API.post("/requests", {
         targetUserId,
+        targetCollection, // Prop se aaya hua dynamic value (students/interns/volunteers)
         changeType: "update_profile",
         changes,
-        reason // Backend mein ye field bhi save hogi
+        reason
       });
       alert("Request sent to Admin successfully!");
       onClose();
@@ -29,7 +31,7 @@ const RequestForm = ({ targetUserId, currentData, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay" style={{ padding: "20px", background: "#fff", borderRadius: "8px", border: "1px solid #ccc" }}>
+    <div className="modal-overlay" style={{ padding: "20px", background: "#fff", borderRadius: "8px", border: "1px solid #ccc", position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 1000, width: "400px" }}>
       <form onSubmit={handleSubmit} className="request-form">
         <h3>Request Update for {currentData.name || "User"}</h3>
         
@@ -48,7 +50,6 @@ const RequestForm = ({ targetUserId, currentData, onClose }) => {
           );
         })}
 
-        {/* Naya: Reason Input */}
         <div style={{ marginTop: "15px" }}>
           <label>Reason for change: </label>
           <textarea 
@@ -60,10 +61,10 @@ const RequestForm = ({ targetUserId, currentData, onClose }) => {
         </div>
         
         <div style={{ marginTop: "15px" }}>
-          <button type="submit" disabled={loading} style={{ background: "#2563eb", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px" }}>
+          <button type="submit" disabled={loading} style={{ background: "#2563eb", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer" }}>
             {loading ? "Sending..." : "Send to Admin"}
           </button>
-          <button type="button" onClick={onClose} style={{ marginLeft: "10px", padding: "10px 20px" }}>
+          <button type="button" onClick={onClose} style={{ marginLeft: "10px", padding: "10px 20px", cursor: "pointer" }}>
             Cancel
           </button>
         </div>

@@ -2,9 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
-import UserList from "../components/UserList";
 
-const Card = ({ title, count, color, onClick, suffix = "" }) => (
+const Card = ({ title, count, color, onClick }) => (
   <div 
     onClick={onClick} 
     style={{ 
@@ -20,16 +19,16 @@ const Card = ({ title, count, color, onClick, suffix = "" }) => (
     onMouseOut={(e) => (e.currentTarget.style.transform = "translateY(0)")}
   >
     <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>{title}</p>
-    <h2 style={{ margin: "10px 0 0 0", color: "#1e3a8a" }}>{count}{suffix}</h2>
+    <h2 style={{ margin: "10px 0 0 0", color: "#1e3a8a" }}>{count}</h2>
   </div>
 );
 
-function AdminDashboard() {
+function ManagerDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [projects, setProjects] = useState([]);
   const [todayRecords, setTodayRecords] = useState({ students: [], interns: [], volunteers: [] });
-  const [requests, setRequests] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
   const [selectedTitle, setSelectedTitle] = useState("");
   const [selectedList, setSelectedList] = useState([]);
   const [filterDate] = useState(new Date().toISOString().split("T")[0]);
@@ -39,11 +38,11 @@ function AdminDashboard() {
       const [sRes, iRes, vRes, saRes, iaRes, vaRes, pRes, reqRes] = await Promise.all([
         API.get("/students"), API.get("/interns"), API.get("/volunteers"),
         API.get("/attendance"), API.get("/intern-attendance"), API.get("/volunteer-attendance"),
-        API.get("/projects"), API.get("/requests/pending")
+        API.get("/projects"), API.get("/requests/my-requests")
       ]);
 
       setProjects(pRes.data);
-      setRequests(reqRes.data);
+      setMyRequests(reqRes.data);
 
       const filteredS = saRes.data.filter(r => r.date === filterDate);
       const filteredI = iaRes.data.filter(r => r.date === filterDate);
@@ -60,40 +59,64 @@ function AdminDashboard() {
 
   useEffect(() => {
     const userRole = localStorage.getItem("role") || "";
-    if (userRole.toLowerCase() !== "admin") {
+    if (userRole.toLowerCase() !== "manager" && userRole.toLowerCase() !== "admin") {
       alert("Access Denied");
-      navigate("/manager-dashboard");
+      navigate("/login");
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadData();
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData();
   }, [navigate, loadData]);
 
-  const handleStatusUpdate = async (id, status) => {
-    await API.put(`/requests/${id}`, { status });
-    loadData();
-  };
+  const btnStyle = { padding: "8px 12px", background: "#1e3a8a", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px" };
 
   if (!stats) return <div style={{ padding: "50px", textAlign: "center" }}><h2>Loading...</h2></div>;
 
   return (
     <div style={{ padding: "30px", background: "#f8fafc", minHeight: "100vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
-        <h1 style={{ color: "#1e3a8a", margin: 0 }}>Admin Dashboard</h1>
+        <h1 style={{ color: "#1e3a8a", margin: 0 }}>Manager Dashboard</h1>
         <div style={{ display: "flex", gap: "10px" }}>
           <button onClick={() => navigate("/all-announcements")} style={{ padding: "10px", background: "#8b5cf6", color: "white", border: "none", borderRadius: "5px" }}>Announcements</button>
           <button onClick={() => navigate("/settings")} style={{ padding: "10px", background: "#334155", color: "white", border: "none", borderRadius: "5px" }}>Settings</button>
         </div>
       </div>
 
-      <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", marginBottom: "30px", border: "1px solid #e2e8f0" }}>
-        <h3 style={{ color: "#1e3a8a", marginTop: 0 }}>Pending Requests ({requests.length})</h3>
-        {requests.map(req => (
-          <div key={req._id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
-            <span><strong>{req.userName}</strong> - {req.requestType}</span>
-            <div>
-              <button onClick={() => handleStatusUpdate(req._id, 'approved')} style={{ background: "#22c55e", color: "white", border: "none", padding: "5px 10px", marginRight: "5px", borderRadius: "4px" }}>Accept</button>
-              <button onClick={() => handleStatusUpdate(req._id, 'rejected')} style={{ background: "#ef4444", color: "white", border: "none", padding: "5px 10px", borderRadius: "4px" }}>Reject</button>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "30px" }}>
+        {[ {name: 'students', label: 'Student'}, {name: 'interns', label: 'Intern'}, {name: 'volunteers', label: 'Volunteer'} ].map((item) => (
+          <div key={item.name} style={{ background: "white", padding: "15px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+            <h4 style={{ margin: "0 0 10px 0" }}>{item.label} Module</h4>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+              <button style={btnStyle} onClick={() => navigate(`/${item.name}`)}>Details</button>
+              <button style={btnStyle} onClick={() => navigate(`/add-${item.name.slice(0,-1)}`)}>Add</button>
+              <button 
+                style={btnStyle} 
+                onClick={() => {
+                  if (item.name === 'volunteers') {
+                    navigate('/volunteer/bulk-attendance');
+                  } else {
+                    navigate(`/${item.name === 'students' ? '' : item.name.slice(0,-1) + '-'}attendance`);
+                  }
+                }}
+              >
+                Attendance
+              </button>
             </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", marginBottom: "30px", border: "1px solid #e2e8f0" }}>
+        <h3 
+          style={{ color: "#1e3a8a", marginTop: 0, cursor: "pointer", display: "inline-block" }} 
+          onClick={() => navigate("/my-requests")}
+        >
+          My Recent Requests ({myRequests.length}) ➔
+        </h3>
+        {myRequests.map(req => (
+          <div key={req._id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
+            <span><strong>{req.actionType}</strong> on {req.targetCollection}</span>
+            <span style={{ fontWeight: "bold", color: req.status === 'APPROVED' ? '#166534' : req.status === 'REJECTED' ? '#991b1b' : '#854d0e' }}>{req.status}</span>
           </div>
         ))}
       </div>
@@ -113,15 +136,19 @@ function AdminDashboard() {
         <Card title="Absent Volunteers" count={stats.volunteers.absent} color="#dc2626" onClick={() => { setSelectedTitle("Absent Volunteers"); setSelectedList(todayRecords.volunteers.filter(r => r.status === "Absent")); }} />
       </div>
 
+      {selectedList.length > 0 && (
+        <div style={{ marginTop: "30px", padding: "20px", background: "white", borderRadius: "8px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><h3>{selectedTitle}</h3><button onClick={() => setSelectedList([])}>Close</button></div>
+          {selectedList.map((r) => (<div key={r._id} style={{ padding: "5px 0" }}>{r.student?.name || r.intern?.name || r.volunteer?.name || "N/A"}</div>))}
+        </div>
+      )}
+
       <h3 style={{ marginTop: "30px", color: "#334155" }}>📊 Visual Insights</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
         <div style={{ background: "white", padding: "20px", borderRadius: "8px" }}>
           <h4>Project Status</h4>
           <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={[{name: "Active", value: projects.filter(p => p.status === "Active").length}, {name: "Completed", value: projects.filter(p => p.status === "Completed").length}]} dataKey="value" fill="#8884d8"><Cell fill="#2563eb" /><Cell fill="#16a34a" /></Pie>
-              <Tooltip />
-            </PieChart>
+            <PieChart><Pie data={[{name: "Active", value: projects.filter(p => p.status === "Active").length}, {name: "Completed", value: projects.filter(p => p.status === "Completed").length}]} dataKey="value" fill="#8884d8"><Cell fill="#2563eb" /><Cell fill="#16a34a" /></Pie><Tooltip /></PieChart>
           </ResponsiveContainer>
         </div>
         <div style={{ background: "white", padding: "20px", borderRadius: "8px" }}>
@@ -133,19 +160,8 @@ function AdminDashboard() {
           </ResponsiveContainer>
         </div>
       </div>
-
-      {selectedList.length > 0 && (
-        <div style={{ marginTop: "30px", padding: "20px", background: "white", borderRadius: "8px" }}>
-          <h3>{selectedTitle}</h3>
-          {selectedList.map((r) => (
-            <div key={r._id} style={{ padding: "10px", borderBottom: "1px solid #f1f5f9" }}>{r.student?.name || r.intern?.name || r.volunteer?.name || "N/A"}</div>
-          ))}
-        </div>
-      )}
-
-      <UserList />
     </div>
   );
 }
 
-export default AdminDashboard;
+export default ManagerDashboard;

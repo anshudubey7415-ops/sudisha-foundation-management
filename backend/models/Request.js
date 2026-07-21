@@ -8,20 +8,25 @@ const requestSchema = new mongoose.Schema({
   },
   targetUserId: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
     required: true 
+  },
+  // Nayi field: Isse pata chalega ki update 'students', 'interns' ya 'volunteers' collection mein karna hai
+  targetCollection: { 
+    type: String, 
+    required: true,
+    enum: ['students', 'interns', 'volunteers'] 
   },
   changeType: { 
     type: String, 
     required: true 
-  }, // e.g., 'update_profile', 'change_role'
+  },
   changes: { 
     type: Object, 
     required: true 
-  }, // Jo data change karna hai
+  },
   reason: { 
     type: String 
-  }, // Request kyun ki ja rahi hai, iska note
+  },
   status: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected'], 
@@ -33,10 +38,9 @@ const requestSchema = new mongoose.Schema({
   },
   updatedAt: { 
     type: Date 
-  } // Jab status update hoga, tab ka timestamp
+  }
 });
 
-// Pre-save hook: Jab bhi status update ho, updatedAt apne aap set ho jaye
 requestSchema.pre('save', function(next) {
   if (this.isModified('status')) {
     this.updatedAt = new Date();
