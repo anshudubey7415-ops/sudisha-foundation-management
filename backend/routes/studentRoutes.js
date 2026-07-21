@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 
-import student from "../models/student.js";
+import Student from "../models/student.js";
 import Attendance from "../models/Attendance.js";
 
 import multer from "multer";
@@ -31,7 +31,7 @@ Upload Student Photo
 
 router.post("/upload/:id", upload.single("photo"), async (req, res) => {
   try {
-    const student = await student.findByIdAndUpdate(
+    const updatedStudent = await Student.findByIdAndUpdate(
       req.params.id,
       {
         photo: req.file.filename,
@@ -41,7 +41,7 @@ router.post("/upload/:id", upload.single("photo"), async (req, res) => {
       }
     );
 
-    res.json(student);
+    res.json(updatedStudent);
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -55,8 +55,8 @@ Add Student
 
 router.post("/add", async (req, res) => {
   try {
-    const student = await student.create(req.body);
-    res.status(201).json(student);
+    const newStudent = await Student.create(req.body);
+    res.status(201).json(newStudent);
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -70,7 +70,7 @@ Get All Students
 
 router.get("/", async (req, res) => {
   try {
-    const students = await student.find();
+    const students = await Student.find();
 
     const studentsWithAttendance = await Promise.all(
       students.map(async (student) => {
@@ -112,16 +112,16 @@ Get Single Student
 
 router.get("/:id", async (req, res) => {
   try {
-    const student = await student.findById(req.params.id);
+    const foundStudent = await Student.findById(req.params.id);
 
-    if (!student) {
+    if (!foundStudent) {
       return res.status(404).json({
         message: "Student not found",
       });
     }
 
     const attendanceRecords = await Attendance.find({
-      student: student._id,
+      student: foundStudent._id,
     });
 
     const totalAttendanceDays = attendanceRecords.length;
@@ -136,7 +136,7 @@ router.get("/:id", async (req, res) => {
         : 0;
 
     res.json({
-      ...student.toObject(),
+      ...foundStudent.toObject(),
       presentDays,
       totalAttendanceDays,
       attendancePercentage,
@@ -154,17 +154,17 @@ Update Student
 
 router.put("/:id", async (req, res) => {
   try {
-    const student = await student.findByIdAndUpdate(req.params.id, req.body, {
+    const updatedStudent = await Student.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
 
-    if (!student) {
+    if (!updatedStudent) {
       return res.status(404).json({
         message: "Student not found",
       });
     }
 
-    res.json(student);
+    res.json(updatedStudent);
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -178,9 +178,9 @@ Delete Student
 
 router.delete("/:id", async (req, res) => {
   try {
-    const student = await student.findByIdAndDelete(req.params.id);
+    const deletedStudent = await Student.findByIdAndDelete(req.params.id);
 
-    if (!student) {
+    if (!deletedStudent) {
       return res.status(404).json({
         message: "Student not found",
       });
