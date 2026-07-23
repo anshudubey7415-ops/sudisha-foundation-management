@@ -89,7 +89,7 @@ function AdminDashboard() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "30px" }}>
         <div style={{ background: "white", padding: "15px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-          <h4 style={{ margin: "0 0 10px 0" }}>Student Module</h4>
+          <h4 style={{ margin: "0 0 10px 0" }}>Mission Akshar 🧒</h4>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
             <button style={btnStyle} onClick={() => navigate("/students")}>Details</button>
             <button style={btnStyle} onClick={() => navigate("/add-student")}>Add</button>

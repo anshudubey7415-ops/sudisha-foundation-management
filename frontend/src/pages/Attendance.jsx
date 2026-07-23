@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../api'; // <-- Yahan plain axios ki jagah apna custom API instance import kar
 
 const Attendance = () => {
   const [students, setStudents] = useState([]);
@@ -9,7 +9,8 @@ const Attendance = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await axios.get('/api/students');
+        // Plain axios ki jagah API use kiya
+        const res = await API.get('/students'); 
         setStudents(Array.isArray(res.data) ? res.data : []);
       } catch (err) { console.error(err); }
     };
@@ -18,7 +19,7 @@ const Attendance = () => {
 
   const styles = {
     container: { 
-      backgroundColor: '#f8fafc', // Light clean gray background
+      backgroundColor: '#f8fafc', 
       minHeight: '100vh', 
       padding: '40px 20px', 
       color: '#1e293b', 
@@ -45,14 +46,14 @@ const Attendance = () => {
       color: isActive ? color : '#64748b', 
       fontWeight: '600', 
       cursor: 'pointer',
-      backgroundColor: isActive ? `${color}15` : 'transparent', // Transparent tint
+      backgroundColor: isActive ? `${color}15` : 'transparent',
       transition: 'all 0.2s ease'
     }),
     submitBtn: { 
       marginTop: '20px',
       width: '100%', 
       padding: '12px', 
-      background: '#1e3a8a', // Royal Blue
+      background: '#1e3a8a', 
       border: 'none', 
       borderRadius: '6px', 
       color: 'white', 
@@ -82,7 +83,15 @@ const Attendance = () => {
           </div>
         </div>
       ))}
-      <button onClick={async () => { await axios.post('/api/attendance/bulk', { records: Object.keys(attendance).map(id => ({student: id, date, status: attendance[id]})) }); alert("Saved!"); }} style={styles.submitBtn}>
+      <button onClick={async () => { 
+        try {
+          // Yahan bhi API instance use kiya
+          await API.post('/attendance/bulk', { records: Object.keys(attendance).map(id => ({student: id, date, status: attendance[id]})) }); 
+          alert("Saved!"); 
+        } catch {
+          alert("Error saving attendance");
+        }
+      }} style={styles.submitBtn}>
         Submit Attendance Records
       </button>
     </div>
