@@ -87,7 +87,7 @@ function StudentProfile() {
         {/* Photo Section */}
         {student.photo ? (
           <img
-            src={`http://localhost:5000/uploads/${student.photo}`}
+            src={`https://sudisha-foundation-management.onrender.com/uploads/${student.photo}`}
             alt="Student"
             style={{
               width: "150px",
