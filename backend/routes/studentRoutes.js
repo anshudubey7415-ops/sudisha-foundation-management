@@ -70,33 +70,39 @@ Get All Students
 
 router.get("/", async (req, res) => {
   try {
-    const students = await Student.find();
+    const [students, allAttendance] = await Promise.all([
+      Student.find().lean(),
+      Attendance.find().lean(),
+    ]);
 
-    const studentsWithAttendance = await Promise.all(
-      students.map(async (student) => {
-        const attendanceRecords = await Attendance.find({
-          student: student._id,
-        });
+    // Build hashmap for instant O(1) lookup
+    const attendanceMap = {};
+    for (const record of allAttendance) {
+      if (!record.student) continue;
+      const studentId = record.student.toString();
+      if (!attendanceMap[studentId]) {
+        attendanceMap[studentId] = { total: 0, present: 0 };
+      }
+      attendanceMap[studentId].total += 1;
+      if (record.status === "Present") {
+        attendanceMap[studentId].present += 1;
+      }
+    }
 
-        const totalAttendanceDays = attendanceRecords.length;
+    const studentsWithAttendance = students.map((student) => {
+      const stats = attendanceMap[student._id.toString()] || { total: 0, present: 0 };
+      const attendancePercentage =
+        stats.total > 0
+          ? ((stats.present / stats.total) * 100).toFixed(1)
+          : 0;
 
-        const presentDays = attendanceRecords.filter(
-          (record) => record.status === "Present"
-        ).length;
-
-        const attendancePercentage =
-          totalAttendanceDays > 0
-            ? ((presentDays / totalAttendanceDays) * 100).toFixed(1)
-            : 0;
-
-        return {
-          ...student.toObject(),
-          presentDays,
-          totalAttendanceDays,
-          attendancePercentage,
-        };
-      })
-    );
+      return {
+        ...student,
+        presentDays: stats.present,
+        totalAttendanceDays: stats.total,
+        attendancePercentage,
+      };
+    });
 
     res.json(studentsWithAttendance);
   } catch (error) {
@@ -148,21 +154,43 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+import Request from "../models/Request.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
+
 /* =========================
 Update Student
 ========================= */
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, async (req, res) => {
   try {
-    const updatedStudent = await Student.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-
-    if (!updatedStudent) {
+    const student = await Student.findById(req.params.id);
+    if (!student) {
       return res.status(404).json({
         message: "Student not found",
       });
     }
+
+    if (req.user?.role === "manager") {
+      const newRequest = new Request({
+        managerId: req.user.id,
+        targetUserId: student._id,
+        targetName: student.name,
+        targetCollection: "students",
+        changeType: "edit_student_profile",
+        changes: req.body,
+        reason: req.body.reason || "Manager submitted student profile update",
+      });
+      await newRequest.save();
+      return res.status(200).json({
+        message: "Student profile update request submitted to Admin for approval!",
+        pendingApproval: true,
+        request: newRequest,
+      });
+    }
+
+    const updatedStudent = await Student.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
 
     res.json(updatedStudent);
   } catch (error) {
@@ -176,16 +204,34 @@ router.put("/:id", async (req, res) => {
 Delete Student
 ========================= */
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, async (req, res) => {
   try {
-    const deletedStudent = await Student.findByIdAndDelete(req.params.id);
-
-    if (!deletedStudent) {
+    const student = await Student.findById(req.params.id);
+    if (!student) {
       return res.status(404).json({
         message: "Student not found",
       });
     }
 
+    if (req.user?.role === "manager") {
+      const newRequest = new Request({
+        managerId: req.user.id,
+        targetUserId: student._id,
+        targetName: student.name,
+        targetCollection: "students",
+        changeType: "delete_student",
+        changes: { action: "delete", name: student.name, details: student },
+        reason: req.body?.reason || "Manager requested student deletion",
+      });
+      await newRequest.save();
+      return res.status(200).json({
+        message: `Deletion request for student ${student.name} submitted to Admin for approval!`,
+        pendingApproval: true,
+        request: newRequest,
+      });
+    }
+
+    await Student.findByIdAndDelete(req.params.id);
     await Attendance.deleteMany({
       student: req.params.id,
     });

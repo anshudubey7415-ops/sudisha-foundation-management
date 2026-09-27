@@ -5,4 +5,4 @@ build/
 uploads/
 *.log
 .DS_Store
-Thumbs.db
+Thumbs.dbs

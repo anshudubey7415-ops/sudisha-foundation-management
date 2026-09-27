@@ -3,6 +3,8 @@ const router = express.Router();
 
 import Intern from "../models/Intern.js";
 import InternAttendance from "../models/InternAttendance.js";
+import User from "../models/User.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 import multer from "multer";
 import path from "path";
@@ -65,27 +67,84 @@ router.post("/add", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const interns = await Intern.find();
+    const [interns, allRecords] = await Promise.all([
+      Intern.find().lean(),
+      InternAttendance.find().lean(),
+    ]);
 
-    const data = await Promise.all(
-      interns.map(async (intern) => {
-        const records = await InternAttendance.find({ intern: intern._id });
-        const totalAttendanceDays = records.length;
-        const presentDays = records.filter((record) => record.status === "Present").length;
-        
-        const attendancePercentage = totalAttendanceDays > 0
-          ? ((presentDays / totalAttendanceDays) * 100).toFixed(1)
-          : 0;
+    const attendanceMap = {};
+    for (const record of allRecords) {
+      const internId = record.intern?.toString();
+      if (!internId) continue;
+      if (!attendanceMap[internId]) {
+        attendanceMap[internId] = { total: 0, present: 0 };
+      }
+      attendanceMap[internId].total += 1;
+      if (record.status === "Present") {
+        attendanceMap[internId].present += 1;
+      }
+    }
 
-        return {
-          ...intern.toObject(),
-          presentDays,
-          totalAttendanceDays,
-          attendancePercentage,
-        };
-      })
-    );
+    const data = interns.map((intern) => {
+      const stats = attendanceMap[intern._id.toString()] || { total: 0, present: 0 };
+      const attendancePercentage = stats.total > 0
+        ? ((stats.present / stats.total) * 100).toFixed(1)
+        : 0;
+
+      return {
+        ...intern,
+        presentDays: stats.present,
+        totalAttendanceDays: stats.total,
+        attendancePercentage,
+      };
+    });
+
     res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/* =========================
+   Get Logged-in Intern Profile (Read Only)
+========================= */
+router.get("/my/profile", verifyToken, async (req, res) => {
+  try {
+    let email = req.user?.email;
+    if (!email && req.user?.id) {
+      const userDoc = await User.findById(req.user.id);
+      if (userDoc) email = userDoc.email;
+    }
+
+    if (!email) {
+      return res.status(400).json({ message: "No email associated with logged in user." });
+    }
+
+    const cleanEmail = email.trim();
+    const intern = await Intern.findOne({
+      email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") }
+    });
+
+    if (!intern) {
+      return res.status(404).json({ 
+        message: `No intern profile matches your registered email (${cleanEmail}). Please contact admin.` 
+      });
+    }
+
+    const records = await InternAttendance.find({ intern: intern._id });
+    const totalAttendanceDays = records.length;
+    const presentDays = records.filter((record) => record.status === "Present").length;
+    
+    const attendancePercentage = totalAttendanceDays > 0
+      ? ((presentDays / totalAttendanceDays) * 100).toFixed(1)
+      : 0;
+
+    res.json({
+      ...intern.toObject(),
+      presentDays,
+      totalAttendanceDays,
+      attendancePercentage,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -120,6 +179,30 @@ router.get("/:id", async (req, res) => {
 });
 
 /* =========================
+   Update Document Permissions
+========================= */
+
+router.patch("/:id/document-permissions", verifyToken, async (req, res) => {
+  try {
+    const { allowIdCard, allowOfferLetter, allowCertificate } = req.body;
+    const updateData = {};
+    if (typeof allowIdCard === "boolean") updateData.allowIdCard = allowIdCard;
+    if (typeof allowOfferLetter === "boolean") updateData.allowOfferLetter = allowOfferLetter;
+    if (typeof allowCertificate === "boolean") updateData.allowCertificate = allowCertificate;
+
+    const intern = await Intern.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!intern) return res.status(404).json({ message: "Intern not found" });
+
+    res.json({
+      message: "Document access permissions updated successfully",
+      intern,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/* =========================
    Update Intern
 ========================= */
 
@@ -133,15 +216,36 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+import Request from "../models/Request.js";
+
 /* =========================
    Delete Intern
 ========================= */
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, async (req, res) => {
   try {
-    const intern = await Intern.findByIdAndDelete(req.params.id);
+    const intern = await Intern.findById(req.params.id);
     if (!intern) return res.status(404).json({ message: "Intern not found" });
 
+    if (req.user?.role === "manager") {
+      const newRequest = new Request({
+        managerId: req.user.id,
+        targetUserId: intern._id,
+        targetName: intern.name,
+        targetCollection: "interns",
+        changeType: "delete_intern",
+        changes: { action: "delete", name: intern.name, details: intern },
+        reason: req.body?.reason || "Manager requested intern deletion",
+      });
+      await newRequest.save();
+      return res.status(200).json({
+        message: `Deletion request for intern ${intern.name} submitted to Admin for approval!`,
+        pendingApproval: true,
+        request: newRequest,
+      });
+    }
+
+    await Intern.findByIdAndDelete(req.params.id);
     await InternAttendance.deleteMany({ intern: req.params.id });
     res.json({ message: "Intern deleted successfully" });
   } catch (error) {

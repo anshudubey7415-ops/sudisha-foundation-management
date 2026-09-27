@@ -102,39 +102,41 @@ router.post("/add", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const volunteers = await Volunteer.find();
+    const [volunteers, allRecords] = await Promise.all([
+      Volunteer.find().lean(),
+      VolunteerAttendance.find().lean(),
+    ]);
 
-    const data = await Promise.all(
-      volunteers.map(async (volunteer) => {
-        const records = await VolunteerAttendance.find({
-          volunteer: volunteer._id,
-        });
+    // Build hashmap for instant O(1) lookup
+    const attendanceMap = {};
+    for (const record of allRecords) {
+      if (!record.volunteer) continue;
+      const volId = record.volunteer.toString();
+      if (!attendanceMap[volId]) {
+        attendanceMap[volId] = { total: 0, present: 0, totalHours: 0 };
+      }
+      attendanceMap[volId].total += 1;
+      if (record.status === "Present") {
+        attendanceMap[volId].present += 1;
+      }
+      attendanceMap[volId].totalHours += (record.hoursWorked || 0);
+    }
 
-        const totalAttendanceDays = records.length;
+    const data = volunteers.map((volunteer) => {
+      const stats = attendanceMap[volunteer._id.toString()] || { total: 0, present: 0, totalHours: 0 };
+      const attendancePercentage =
+        stats.total > 0
+          ? ((stats.present / stats.total) * 100).toFixed(1)
+          : 0;
 
-        const presentDays = records.filter(
-          (record) => record.status === "Present"
-        ).length;
-
-        const attendancePercentage =
-          totalAttendanceDays > 0
-            ? ((presentDays / totalAttendanceDays) * 100).toFixed(1)
-            : 0;
-
-        const totalHours = records.reduce(
-          (total, record) => total + (record.hoursWorked || 0),
-          0
-        );
-
-        return {
-          ...volunteer.toObject(),
-          presentDays,
-          totalAttendanceDays,
-          attendancePercentage,
-          totalHours,
-        };
-      })
-    );
+      return {
+        ...volunteer,
+        presentDays: stats.present,
+        totalAttendanceDays: stats.total,
+        attendancePercentage,
+        totalHours: stats.totalHours,
+      };
+    });
 
     res.json(data);
   } catch (error) {
@@ -220,20 +222,41 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+import Request from "../models/Request.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
+
 /* =========================
     Delete Volunteer
 ========================= */
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, async (req, res) => {
   try {
-    const volunteer = await Volunteer.findByIdAndDelete(req.params.id);
-
+    const volunteer = await Volunteer.findById(req.params.id);
     if (!volunteer) {
       return res.status(404).json({
         message: "Volunteer not found",
       });
     }
 
+    if (req.user?.role === "manager") {
+      const newRequest = new Request({
+        managerId: req.user.id,
+        targetUserId: volunteer._id,
+        targetName: volunteer.name,
+        targetCollection: "volunteers",
+        changeType: "delete_volunteer",
+        changes: { action: "delete", name: volunteer.name, details: volunteer },
+        reason: req.body?.reason || "Manager requested volunteer deletion",
+      });
+      await newRequest.save();
+      return res.status(200).json({
+        message: `Deletion request for volunteer ${volunteer.name} submitted to Admin for approval!`,
+        pendingApproval: true,
+        request: newRequest,
+      });
+    }
+
+    await Volunteer.findByIdAndDelete(req.params.id);
     await VolunteerAttendance.deleteMany({
       volunteer: req.params.id,
     });

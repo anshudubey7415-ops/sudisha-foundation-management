@@ -1,74 +1,100 @@
 import { useState } from "react";
-import API from "../api"; 
+import { UserPlus, Loader2 } from "lucide-react";
+import API from "../api";
+import { useToast } from "../context/ToastContext";
 
-const RegisterUser = () => {
+const RegisterUser = ({ onUserCreated }) => {
+  const { showSuccess, showError, showWarning } = useToast();
   const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "intern" });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ text: "", type: "" });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
+      showWarning("Please fill in all required fields.");
+      return;
+    }
+
     setLoading(true);
-    setMessage({ text: "", type: "" });
-    
     try {
       await API.post("/auth/register", formData);
-      setMessage({ text: `${formData.role.toUpperCase()} created successfully!`, type: "success" });
+      showSuccess(`Account for ${formData.name} (${formData.role}) created successfully!`);
       setFormData({ name: "", email: "", password: "", role: "intern" });
+      if (onUserCreated) onUserCreated();
     } catch (err) {
-      setMessage({ 
-        text: err.response?.data?.message || "Registration failed. Please check the details.", 
-        type: "error" 
-      });
+      console.error(err);
+      showError(err.response?.data?.message || "Registration failed. Please check the details.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: "20px", background: "white", borderRadius: "10px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}>
-      <h3 style={{ marginTop: 0, color: "#1e3a8a" }}>➕ Create New User</h3>
-      
-      {/* Feedback Message */}
-      {message.text && (
-        <p style={{ color: message.type === "success" ? "#16a34a" : "#dc2626", fontSize: "14px", fontWeight: "bold" }}>
-          {message.text}
-        </p>
-      )}
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div className="form-group">
+        <label className="form-label">Full Name *</label>
+        <input
+          type="text"
+          className="form-control"
+          placeholder="e.g. Anjali Sharma"
+          required
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
+      </div>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-        <input 
-          type="text" placeholder="Full Name" required value={formData.name}
-          onChange={(e) => setFormData({...formData, name: e.target.value})} style={inputStyle}
+      <div className="form-group">
+        <label className="form-label">Email Address *</label>
+        <input
+          type="email"
+          className="form-control"
+          placeholder="anjali@sudishafoundation.org"
+          required
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
         />
-        <input 
-          type="email" placeholder="Email Address" required value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})} style={inputStyle}
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Password * (Min 6 chars)</label>
+        <input
+          type="password"
+          className="form-control"
+          placeholder="••••••••"
+          required
+          minLength={6}
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
         />
-        <input 
-          type="password" placeholder="Password (Min 6 chars)" required minLength="6" value={formData.password}
-          onChange={(e) => setFormData({...formData, password: e.target.value})} style={inputStyle}
-        />
-        <select 
-          value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})} style={inputStyle}
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">System Role *</label>
+        <select
+          className="form-control"
+          value={formData.role}
+          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
         >
           <option value="intern">Intern</option>
+          <option value="volunteer">Volunteer</option>
           <option value="manager">Manager</option>
           <option value="admin">Admin</option>
         </select>
-        
-        <button 
-          type="submit" disabled={loading}
-          style={{ ...buttonStyle, opacity: loading ? 0.7 : 1 }}
-        >
-          {loading ? "Creating..." : "Create Account"}
-        </button>
-      </form>
-    </div>
+      </div>
+
+      <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: "100%", marginTop: "8px", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "6px" }}>
+        {loading ? (
+          <>
+            <Loader2 size={16} className="spin" /> Creating User...
+          </>
+        ) : (
+          <>
+            <UserPlus size={16} /> Register User Account
+          </>
+        )}
+      </button>
+    </form>
   );
 };
-
-const inputStyle = { padding: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none" };
-const buttonStyle = { background: "#2563eb", color: "white", padding: "12px", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" };
 
 export default RegisterUser;

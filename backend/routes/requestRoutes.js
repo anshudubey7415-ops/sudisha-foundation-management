@@ -1,24 +1,31 @@
 import express from 'express';
 import { 
     createRequest, 
+    getAllRequests,
     getPendingRequests, 
-    getMyRequests,  // Yeh import add kiya
+    getMyRequests,
     updateRequestStatus 
 } from '../controllers/requestController.js';
-import { verifyToken } from '../middleware/authMiddleware.js';
+import { verifyToken, isAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Manager request bhej sakta hai
+// Manager creates request
 router.post('/', verifyToken, createRequest);
 
-// Manager apni bheji hui requests dekh sakta hai
+// Manager views their own requests
 router.get('/my-requests', verifyToken, getMyRequests);
 
-// Admin saari pending requests dekh sakta hai
-router.get('/pending', verifyToken, getPendingRequests);
+// Admin views all pending requests
+router.get('/pending', verifyToken, isAdmin, getPendingRequests);
 
-// Admin request ko approve ya reject kar sakta hai
-router.put('/:id', verifyToken, updateRequestStatus);
+// Admin views all requests (with optional ?status= query)
+router.get('/', verifyToken, isAdmin, getAllRequests);
+
+// Admin approves/rejects request via url action
+router.put('/:id/:action', verifyToken, isAdmin, updateRequestStatus);
+
+// Admin approves/rejects request via body
+router.put('/:id', verifyToken, isAdmin, updateRequestStatus);
 
 export default router;

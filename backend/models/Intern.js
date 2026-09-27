@@ -100,6 +100,20 @@ const internSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    // Admin Document Approvals / Permissions for Intern Portal
+    allowIdCard: {
+      type: Boolean,
+      default: false,
+    },
+    allowOfferLetter: {
+      type: Boolean,
+      default: false,
+    },
+    allowCertificate: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

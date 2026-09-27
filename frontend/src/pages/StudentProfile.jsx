@@ -1,193 +1,325 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import API from "../api";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  User,
+  CreditCard,
+  Edit2,
+  Upload,
+  FileText,
+  Activity,
+  CalendarDays,
+  CheckCircle2,
+  TrendingUp,
+  CalendarCheck,
+  Loader2
+} from "lucide-react";
+import { useToast } from "../context/ToastContext";
+import API, { getUploadUrl } from "../api";
 
 function StudentProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
 
   const [student, setStudent] = useState(null);
   const [attendance, setAttendance] = useState([]);
   const [photo, setPhoto] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStudent = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await API.get(`/students/${id}`);
+      setStudent(res.data);
+    } catch (error) {
+      console.error("Error fetching student:", error);
+      showError("Error loading student profile");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, showError]);
+
+  const fetchAttendance = useCallback(async () => {
+    try {
+      const res = await API.get("/attendance");
+      const studentRecords = (res.data || []).filter(
+        (record) => record.student?._id === id || record.student === id
+      );
+      studentRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+      setAttendance(studentRecords);
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+    }
+  }, [id]);
 
   useEffect(() => {
-    // Functions ko useEffect ke andar define kar diya
-    const fetchStudent = async () => {
-      try {
-        const res = await API.get(`/students/${id}`);
-        setStudent(res.data);
-      } catch (error) {
-        console.error("Error fetching student:", error);
-      }
-    };
-
-    const fetchAttendance = async () => {
-      try {
-        const res = await API.get("/attendance");
-        const studentRecords = res.data.filter(
-          (record) => record.student?._id === id
-        );
-        studentRecords.sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
-        setAttendance(studentRecords);
-      } catch (error) {
-        console.error("Error fetching attendance:", error);
-      }
-    };
-
     fetchStudent();
     fetchAttendance();
-  }, [id]); // id dependency add ki
+  }, [fetchStudent, fetchAttendance]);
 
   const uploadPhoto = async () => {
     if (!photo) {
-      alert("Please select a photo");
+      showError("Please choose a photo file to upload");
       return;
     }
 
     try {
+      setUploading(true);
       const formData = new FormData();
       formData.append("photo", photo);
 
       await API.post(`/students/upload/${id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert("Photo Uploaded Successfully");
-      // Page reload ya data refresh ka logic
-      window.location.reload();
+      showSuccess("Photo uploaded successfully!");
+      setPhoto(null);
+      fetchStudent();
     } catch (error) {
       console.error(error);
-      alert("Photo Upload Failed");
+      showError("Failed to upload photo: " + (error.response?.data?.message || error.message));
+    } finally {
+      setUploading(false);
     }
   };
 
-  if (!student) {
+  if (loading) {
     return (
-      <div style={{ padding: "20px" }}>
-        <h2>Loading Student...</h2>
+      <div style={{ padding: "80px", textAlign: "center" }}>
+        <div style={{ display: "inline-flex", padding: "12px", background: "var(--primary-light)", color: "var(--primary)", borderRadius: "50%", marginBottom: "12px" }}>
+          <Loader2 size={24} className="animate-spin" />
+        </div>
+        <h3>Loading Student Profile...</h3>
       </div>
     );
   }
 
+  if (!student) {
+    return (
+      <div className="card" style={{ padding: "40px", textAlign: "center" }}>
+        <h2>Student Not Found</h2>
+        <Link to="/students" className="btn btn-primary" style={{ marginTop: "16px" }}>
+          Return to Student Directory
+        </Link>
+      </div>
+    );
+  }
+
+  const rate = parseFloat(student.attendancePercentage || 0);
+
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Student Profile</h1>
-      <div
-        style={{
-          border: "1px solid #ddd",
-          borderRadius: "10px",
-          padding: "20px",
-          background: "#f9fafb",
-          maxWidth: "900px",
-        }}
-      >
-        {/* Photo Section */}
-        {student.photo ? (
-          <img
-            src={`https://sudisha-foundation-management.onrender.com/uploads/${student.photo}`}
-            alt="Student"
-            style={{
-              width: "150px",
-              height: "150px",
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: "4px solid #2563eb",
-              marginBottom: "20px",
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: "150px",
-              height: "150px",
-              borderRadius: "50%",
-              background: "#ddd",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              fontSize: "18px",
-              marginBottom: "20px",
-            }}
-          >
-            No Photo
+    <div>
+      <div className="page-header">
+        <div className="page-title-group">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Link to="/students" className="btn btn-secondary btn-icon" title="Back to Students">
+              <ArrowLeft size={16} />
+            </Link>
+            <div>
+              <h1 style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                <User size={22} color="var(--primary)" /> Student Profile: {student.name}
+              </h1>
+              <p>Roll No: {student.rollNumber} &bull; Class: {student.class}</p>
+            </div>
           </div>
-        )}
+        </div>
 
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setPhoto(e.target.files[0])}
-        />
-        <br />
-        <br />
-        <button
-          onClick={uploadPhoto}
-          style={{
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            padding: "10px 15px",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Upload Photo
-        </button>
+        <div className="page-actions">
+          <Link to={`/student/id-card/${student._id}`} className="btn btn-secondary btn-sm">
+            <CreditCard size={14} /> ID Card
+          </Link>
+          <Link to={`/edit-student/${student._id}`} className="btn btn-primary btn-sm">
+            <Edit2 size={14} /> Edit Student
+          </Link>
+        </div>
+      </div>
 
-        <hr />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px", marginBottom: "28px" }}>
+        {/* Profile Card & Photo Upload */}
+        <div className="card" style={{ textAlign: "center" }}>
+          <div style={{ position: "relative", width: "140px", height: "140px", margin: "0 auto 16px" }}>
+            {student.photo ? (
+              <img
+                src={getUploadUrl(student.photo)}
+                alt={student.name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "var(--radius-full)",
+                  objectFit: "cover",
+                  border: "4px solid var(--primary)",
+                  boxShadow: "var(--shadow-md)"
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "var(--radius-full)",
+                  background: "var(--primary-light)",
+                  color: "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "3rem",
+                  fontWeight: 800,
+                  border: "4px solid var(--border-color)"
+                }}
+              >
+                {student.name?.charAt(0) || "S"}
+              </div>
+            )}
+          </div>
 
-        {/* Student Details */}
-        <h2>{student.rollNumber} - {student.name}</h2>
-        <p><strong>Class:</strong> {student.class}</p>
-        <p><strong>Age:</strong> {student.age}</p>
-        <p><strong>Gender:</strong> {student.gender}</p>
-        <p><strong>Admission Date:</strong> {student.admissionDate}</p>
-        <p><strong>Father Name:</strong> {student.fatherName}</p>
-        <p><strong>Mother Name:</strong> {student.motherName}</p>
-        <p><strong>Mobile:</strong> {student.phone}</p>
-        <p><strong>Address:</strong> {student.address}</p>
+          <h2 style={{ margin: "0 0 4px 0" }}>{student.name}</h2>
+          <span className="badge badge-role-student" style={{ marginBottom: "16px" }}>
+            Roll No: {student.rollNumber}
+          </span>
 
-        <hr />
-        <h2>Attendance Summary</h2>
-        <p><strong>Present Days:</strong> {student.presentDays || 0}</p>
-        <p><strong>Total Attendance Days:</strong> {student.totalAttendanceDays || 0}</p>
-        <p><strong>Attendance Percentage:</strong> {student.attendancePercentage || 0}%</p>
+          <div style={{ marginTop: "16px", padding: "16px", background: "var(--bg-surface)", borderRadius: "var(--radius-sm)" }}>
+            <label className="form-label" style={{ display: "block", marginBottom: "8px", textAlign: "left" }}>
+              Update Student Photo
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              className="form-input"
+              style={{ marginBottom: "10px", padding: "6px" }}
+              onChange={(e) => setPhoto(e.target.files[0])}
+            />
+            <button
+              onClick={uploadPhoto}
+              disabled={uploading || !photo}
+              className="btn btn-primary btn-sm"
+              style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload size={14} /> Upload New Photo
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
-        <hr />
-        <h2>Attendance History</h2>
+        {/* Details Card */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+              <FileText size={18} /> Student Information
+            </h3>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>CLASS</div>
+              <div style={{ fontWeight: 600, fontSize: "1rem" }}>{student.class}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>ADMISSION DATE</div>
+              <div style={{ fontWeight: 600, fontSize: "1rem" }}>{student.admissionDate || "—"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>AGE / GENDER</div>
+              <div style={{ fontWeight: 600, fontSize: "1rem" }}>{student.age ? `${student.age} yrs` : "—"} / {student.gender || "—"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>PHONE</div>
+              <div style={{ fontWeight: 600, fontSize: "1rem" }}>{student.phone || "—"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>FATHER'S NAME</div>
+              <div style={{ fontWeight: 600, fontSize: "1rem" }}>{student.fatherName || "—"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>MOTHER'S NAME</div>
+              <div style={{ fontWeight: 600, fontSize: "1rem" }}>{student.motherName || "—"}</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: "16px" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>RESIDENTIAL ADDRESS</div>
+            <div style={{ fontWeight: 500, fontSize: "0.9375rem", marginTop: "2px" }}>{student.address || "No address provided"}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Attendance Stats Cards */}
+      <h3 style={{ marginBottom: "16px", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+        <Activity size={18} color="var(--primary)" /> Attendance Analytics
+      </h3>
+      <div className="stats-grid" style={{ marginBottom: "28px" }}>
+        <div className="stat-card" style={{ "--card-accent": "#2563eb" }}>
+          <div className="stat-top">
+            <span className="stat-label">Total Days Tracked</span>
+            <div className="stat-icon" style={{ "--stat-icon-bg": "#eff6ff", "--stat-icon-color": "#2563eb" }}>
+              <CalendarDays size={20} />
+            </div>
+          </div>
+          <div className="stat-value">{student.totalAttendanceDays || attendance.length}</div>
+        </div>
+
+        <div className="stat-card" style={{ "--card-accent": "#10b981" }}>
+          <div className="stat-top">
+            <span className="stat-label">Present Days</span>
+            <div className="stat-icon" style={{ "--stat-icon-bg": "#ecfdf5", "--stat-icon-color": "#10b981" }}>
+              <CheckCircle2 size={20} />
+            </div>
+          </div>
+          <div className="stat-value" style={{ color: "#10b981" }}>{student.presentDays || attendance.filter(r => r.status === 'Present').length}</div>
+        </div>
+
+        <div className="stat-card" style={{ "--card-accent": rate >= 75 ? "#10b981" : "#f59e0b" }}>
+          <div className="stat-top">
+            <span className="stat-label">Attendance Rate</span>
+            <div className="stat-icon" style={{ "--stat-icon-bg": "#fffbeb", "--stat-icon-color": "#f59e0b" }}>
+              <TrendingUp size={20} />
+            </div>
+          </div>
+          <div className="stat-value">{rate}%</div>
+        </div>
+      </div>
+
+      {/* Attendance Log Table */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <CalendarCheck size={18} /> Detailed Attendance History ({attendance.length} Records)
+          </h3>
+        </div>
+
         {attendance.length === 0 ? (
-          <p>No Attendance Records Found</p>
+          <p style={{ margin: 0, textAlign: "center", padding: "20px", color: "var(--text-muted)" }}>No attendance records found for this student.</p>
         ) : (
-          <table
-            border="1"
-            cellPadding="10"
-            style={{ width: "100%", borderCollapse: "collapse" }}
-          >
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendance.map((record) => (
-                <tr key={record._id}>
-                  <td>{record.date}</td>
-                  <td
-                    style={{
-                      color: record.status === "Present" ? "green" : "red",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {record.status}
-                  </td>
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Attendance Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {attendance.map((record) => (
+                  <tr key={record._id}>
+                    <td><strong>{record.date}</strong></td>
+                    <td>
+                      <span className={`badge badge-${record.status?.toLowerCase()}`}>
+                        {record.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

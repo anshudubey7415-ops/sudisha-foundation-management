@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, Clock, Loader2, Check } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import API from "../api";
 
 function VolunteerAttendance() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+  const { showSuccess, showError } = useToast();
+
   const [volunteer, setVolunteer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   const [formData, setFormData] = useState({
-    date: "",
+    date: new Date().toISOString().split("T")[0],
     status: "Present",
-    checkIn: "",
-    checkOut: "",
-    remarks: "",
+    checkIn: "09:00",
+    checkOut: "17:00",
+    remarks: "Regular volunteer activity session",
   });
 
   useEffect(() => {
@@ -22,96 +27,146 @@ function VolunteerAttendance() {
         setLoading(true);
         const res = await API.get(`/volunteers/${id}`);
         setVolunteer(res.data);
-      } catch (error) {
-        console.error("Error fetching volunteer details:", error);
-        alert("Failed to load volunteer data.");
+      } catch (err) {
+        console.error(err);
+        showError("Failed to fetch volunteer data");
       } finally {
         setLoading(false);
       }
     };
 
     fetchVolunteer();
-  }, [id]);
+  }, [id, showError]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const markAttendance = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Logic: Agar Absent hai, toh time fields empty rakho
-    const payload = {
-      volunteer: id,
-      ...formData,
-      checkIn: formData.status === "Absent" ? "" : formData.checkIn,
-      checkOut: formData.status === "Absent" ? "" : formData.checkOut,
-    };
-
+    setSaving(true);
     try {
-      await API.post("/volunteer-attendance/mark", payload);
-      alert("Attendance Marked Successfully");
-      setFormData({ date: "", status: "Present", checkIn: "", checkOut: "", remarks: "" });
-      navigate(`/volunteer/${id}`); // Attendance mark karke profile pe wapas bhej diya
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.message || "An error occurred.");
+      await API.post("/volunteer-attendance/mark", {
+        volunteer: id,
+        ...formData,
+      });
+      showSuccess(`Attendance logged for ${volunteer?.name || 'Volunteer'}!`);
+      navigate(`/volunteer/${id}`);
+    } catch (err) {
+      console.error(err);
+      showError("Failed to log attendance: " + (err.response?.data?.message || err.message));
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) return <div style={{ padding: "20px" }}><h2>Loading Volunteer Details...</h2></div>;
-  if (!volunteer) return <div style={{ padding: "20px" }}><h2>Volunteer not found.</h2></div>;
-
-  const inputStyle = { display: "block", width: "100%", padding: "10px", marginTop: "5px", borderRadius: "5px", border: "1px solid #ccc" };
+  if (loading) {
+    return (
+      <div style={{ padding: "60px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+        <Loader2 size={32} className="spin" style={{ color: "var(--primary)" }} />
+        <h3>Loading Volunteer...</h3>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: "25px", maxWidth: "600px" }}>
-      <h1 style={{ marginBottom: "20px" }}>Attendance: {volunteer.name}</h1>
-      
-      <form onSubmit={markAttendance}>
-        <div style={{ marginBottom: "15px" }}>
-          <label><strong>Date</strong></label>
-          <input type="date" name="date" value={formData.date} onChange={handleChange} required style={inputStyle} />
-        </div>
-
-        <div style={{ marginBottom: "15px" }}>
-          <label><strong>Status</strong></label>
-          <select name="status" value={formData.status} onChange={handleChange} style={inputStyle}>
-            <option value="Present">Present</option>
-            <option value="Absent">Absent</option>
-            <option value="Half Day">Half Day</option>
-            <option value="Work From Home">Work From Home</option>
-          </select>
-        </div>
-
-        {formData.status !== "Absent" && (
-          <>
-            <div style={{ marginBottom: "15px" }}>
-              <label><strong>Check In Time</strong></label>
-              <input type="time" name="checkIn" value={formData.checkIn} onChange={handleChange} required={formData.status !== "Absent"} style={inputStyle} />
+    <div style={{ maxWidth: "680px", margin: "0 auto" }}>
+      <div className="page-header">
+        <div className="page-title-group">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Link to={`/volunteer/${id}`} className="btn btn-secondary btn-icon" title="Back to Profile">
+              <ArrowLeft size={16} />
+            </Link>
+            <div>
+              <h1 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Clock size={24} style={{ color: "var(--primary)" }} /> Log Volunteer Hours: {volunteer?.name}
+              </h1>
+              <p>ID: {volunteer?.volunteerId} &bull; Total Hours: {volunteer?.totalHours || 0} hrs</p>
             </div>
-            <div style={{ marginBottom: "15px" }}>
-              <label><strong>Check Out Time</strong></label>
-              <input type="time" name="checkOut" value={formData.checkOut} onChange={handleChange} required={formData.status !== "Absent"} style={inputStyle} />
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Activity Date *</label>
+              <input
+                type="date"
+                name="date"
+                className="form-input"
+                value={formData.date}
+                onChange={handleChange}
+                required
+              />
             </div>
-          </>
-        )}
 
-        <div style={{ marginBottom: "20px" }}>
-          <label><strong>Remarks</strong></label>
-          <textarea name="remarks" rows="3" value={formData.remarks} onChange={handleChange} style={inputStyle} />
-        </div>
+            <div className="form-group">
+              <label className="form-label">Attendance Status *</label>
+              <select name="status" className="form-select" value={formData.status} onChange={handleChange} required>
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+                <option value="Half Day">Half Day</option>
+                <option value="Work From Home">Work From Home</option>
+              </select>
+            </div>
+          </div>
 
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button type="submit" style={{ padding: "10px 20px", backgroundColor: "#2563eb", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
-            Mark Attendance
-          </button>
-          <button type="button" onClick={() => navigate(-1)} style={{ padding: "10px 20px", backgroundColor: "#6b7280", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
-            Cancel
-          </button>
-        </div>
-      </form>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Check-In Time</label>
+              <input
+                type="time"
+                name="checkIn"
+                className="form-input"
+                value={formData.checkIn}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Check-Out Time</label>
+              <input
+                type="time"
+                name="checkOut"
+                className="form-input"
+                value={formData.checkOut}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Activity Remarks / Contribution Summary</label>
+            <textarea
+              name="remarks"
+              className="form-textarea"
+              placeholder="e.g. Conducted mathematics session for Class 4, coordinated event logistics..."
+              rows="3"
+              value={formData.remarks}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+            <button type="button" onClick={() => navigate(-1)} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving} className="btn btn-primary btn-lg" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+              {saving ? (
+                <>
+                  <Loader2 size={18} className="spin" /> Logging Session...
+                </>
+              ) : (
+                <>
+                  <Check size={18} /> Record Volunteering Hours
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

@@ -1,109 +1,193 @@
-import { useContext, useState } from 'react';
-import { ThemeContext } from '../context/ThemeContext';
-import { AuthContext } from '../context/AuthContext'; 
-import { useNavigate } from 'react-router-dom'; 
+import { useContext, useState } from "react";
+import { Bell, Palette, Sun, Moon, LogOut, Loader2 } from "lucide-react";
+import { ThemeContext } from "../context/ThemeContext";
+import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import API from "../api";
-// Import your RegisterUser component here if it's in the same folder or update path
-import RegisterUser from './RegisterUser'; 
+import UserList from "../components/UserList";
+import { useToast } from "../context/ToastContext";
 
 const Settings = () => {
-  const { theme, setTheme } = useContext(ThemeContext);
-  const { user, setUser } = useContext(AuthContext); // Context se actual user lo
-  const navigate = useNavigate(); 
-  const [announcement, setAnnouncement] = useState({ title: "", message: "" });
-  
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null); 
-    navigate('/login');
-  };
+  const { theme, toggleTheme } = useContext(ThemeContext);
+  const { user, logout } = useContext(AuthContext);
+  const { showSuccess, showError, showWarning } = useToast();
+  const navigate = useNavigate();
 
-  const handlePostAnnouncement = async () => {
-    if (!announcement.title || !announcement.message) return alert("Please fill all fields");
+  const [announcement, setAnnouncement] = useState({ title: "", message: "" });
+  const [posting, setPosting] = useState(false);
+
+  const handlePostAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!announcement.title.trim() || !announcement.message.trim()) {
+      showWarning("Please provide both a title and message for the announcement.");
+      return;
+    }
+
     try {
+      setPosting(true);
       await API.post("/announcements", announcement);
-      alert("Announcement Posted Successfully!");
+      showSuccess("Announcement broadcasted successfully!");
       setAnnouncement({ title: "", message: "" });
     } catch (err) {
-      console.error("Announcement Error:", err); 
+      console.error("Announcement Error:", err);
+      showError("Failed to publish announcement.");
+    } finally {
+      setPosting(false);
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
-    <Layout title="Settings">
-      <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+    <Layout title="Portal Settings & Control">
+      <div style={{ maxWidth: "900px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
         
-        {/* Profile Section */}
-        <section style={sectionStyle}>
-          <h3 style={{ marginTop: 0 }}>👤 Profile</h3>
-          <p><strong>Name:</strong> {user?.name}</p>
-          <p><strong>Email:</strong> {user?.email}</p>
-          <p><strong>Role:</strong> <span style={roleBadge}>{user?.role}</span></p>
-        </section>
-
-        {/* Announcement Section - Visible to Admin & Manager */}
-        {(user?.role === 'admin' || user?.role === 'manager') && (
-          <section style={sectionStyle}>
-            <h3 style={{ marginTop: 0 }}>📢 Post Announcement</h3>
-            <input 
-              placeholder="Title" 
-              value={announcement.title}
-              onChange={(e) => setAnnouncement({...announcement, title: e.target.value})}
-              style={{ ...inputStyle, width: "100%", marginBottom: "10px", boxSizing: "border-box" }} 
-            />
-            <textarea 
-              placeholder="Message" 
-              value={announcement.message}
-              onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
-              style={{ ...inputStyle, width: "100%", height: "80px", marginBottom: "10px", boxSizing: "border-box" }} 
-            />
-            <button onClick={handlePostAnnouncement} style={buttonStyle}>Post</button>
-          </section>
-        )}
-
-        {/* Admin System Controls - VISIBLE ONLY TO ADMIN */}
-        {user?.role === 'admin' && (
-          <section style={{ ...sectionStyle, borderColor: "#4338ca" }}>
-            <h3 style={{ marginTop: 0, color: "#4338ca" }}>🛠 Admin System Controls</h3>
-            <RegisterUser />
-            {/* Future: Add System Logs or Password Reset here */}
-          </section>
-        )}
-
-        {/* Preferences Section */}
-        <section style={sectionStyle}>
-          <h3 style={{ marginTop: 0 }}>⚙️ Preferences</h3>
-          <div style={optionStyle}>
-            <label>Mode (Theme):</label>
-            <select 
-              value={theme} 
-              onChange={(e) => setTheme(e.target.value)} 
-              style={inputStyle}
+        {/* User Profile Card */}
+        <div className="card" style={{ padding: "28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, var(--primary), #a855f7)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.6rem",
+                fontWeight: 700,
+                boxShadow: "0 4px 12px rgba(99, 102, 241, 0.25)",
+              }}
             >
-              <option value="light">Light Mode</option>
-              <option value="dark">Dark Mode</option>
-            </select>
+              {user?.name ? user.name[0].toUpperCase() : "U"}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                  {user?.name || "System User"}
+                </h2>
+                <span
+                  className="badge"
+                  style={{
+                    background: "rgba(99, 102, 241, 0.12)",
+                    color: "var(--primary)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  {user?.role || "Member"}
+                </span>
+              </div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: "4px" }}>
+                {user?.email || "user@sudishafoundation.org"}
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
 
-        {/* Account Section */}
-        <section style={sectionStyle}>
-          <h3 style={{ marginTop: 0 }}>🔒 Account</h3>
-          <button onClick={handleLogout} style={logoutButtonStyle}>Logout</button>
-        </section>
+        {/* Post Announcement Section (Admin & Manager) */}
+        {(user?.role === "admin" || user?.role === "manager") && (
+          <div className="card" style={{ padding: "28px" }}>
+            <h3 style={{ margin: "0 0 16px 0", fontSize: "1.15rem", fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+              <Bell size={20} style={{ color: "var(--primary)" }} /> Broadcast Public Announcement
+            </h3>
+            <form onSubmit={handlePostAnnouncement} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="form-group">
+                <label className="form-label">Announcement Title *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Center holiday notice / Drive update"
+                  value={announcement.title}
+                  onChange={(e) => setAnnouncement({ ...announcement, title: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Announcement Content *</label>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  placeholder="Type the message body to be broadcasted to all foundation members..."
+                  value={announcement.message}
+                  onChange={(e) => setAnnouncement({ ...announcement, message: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button type="submit" className="btn btn-primary" disabled={posting} style={{ minWidth: "160px", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "6px" }}>
+                  {posting ? (
+                    <>
+                      <Loader2 size={16} className="spin" /> Publishing...
+                    </>
+                  ) : (
+                    "Publish Announcement"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Admin System User Management */}
+        {user?.role === "admin" && (
+          <UserList />
+        )}
+
+        {/* Theme Preferences */}
+        <div className="card" style={{ padding: "28px" }}>
+          <h3 style={{ margin: "0 0 16px 0", fontSize: "1.15rem", fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+            <Palette size={20} style={{ color: "var(--primary)" }} /> Display & Theme Preferences
+          </h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+            <div>
+              <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Color Scheme</div>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                Currently active: <strong>{theme === "dark" ? "Dark Theme" : "Light Theme"}</strong>
+              </div>
+            </div>
+            <button onClick={toggleTheme} className="btn btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              {theme === "dark" ? (
+                <>
+                  <Sun size={14} /> Switch to Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon size={14} /> Switch to Dark Mode
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Account & Logout */}
+        <div className="card" style={{ padding: "28px", borderLeft: "4px solid var(--danger)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+                <LogOut size={20} style={{ color: "var(--danger)" }} /> Account Session
+              </h3>
+              <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                Sign out of your active session on this device.
+              </p>
+            </div>
+            <button onClick={handleLogout} className="btn btn-danger" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <LogOut size={14} /> Logout of Portal
+            </button>
+          </div>
+        </div>
+
       </div>
     </Layout>
   );
 };
-
-// Styling remain same...
-const sectionStyle = { padding: "20px", border: "1px solid var(--border)", borderRadius: "10px", marginBottom: "20px", background: "var(--bg)" };
-const optionStyle = { margin: "15px 0", display: "flex", justifyContent: "space-between", alignItems: "center" };
-const inputStyle = { padding: "8px", borderRadius: "5px", border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)" };
-const buttonStyle = { background: "#4338ca", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer", width: "100%" };
-const roleBadge = { background: "#e0e7ff", padding: "3px 10px", borderRadius: "15px", color: "#4338ca", fontWeight: "bold", fontSize: "0.9em" };
-const logoutButtonStyle = { background: "#ef4444", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer", width: "100%" };
 
 export default Settings;

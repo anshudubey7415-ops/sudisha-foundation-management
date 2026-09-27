@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, CalendarDays, CalendarCheck, Loader2, Calendar } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import API from "../api";
 
 function VolunteerAllHistory() {
@@ -7,101 +10,131 @@ function VolunteerAllHistory() {
   );
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { showError } = useToast();
 
   useEffect(() => {
-    // IIFE ka use kar rahe hain taaki koi warning na aaye
-    (async () => {
+    const fetchDateRecords = async () => {
       if (!selectedDate) return;
-
       setLoading(true);
       try {
         const res = await API.get(`/volunteers/attendance/date/${selectedDate}`);
-        setAttendanceData(res.data || []);
+        setAttendanceData(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
         console.error("Error fetching date-wise attendance:", error);
+        showError("Failed to fetch records for selected date");
         setAttendanceData([]);
       } finally {
         setLoading(false);
       }
-    })();
-  }, [selectedDate]); // Sirf selectedDate change hone par chalega
+    };
+
+    fetchDateRecords();
+  }, [selectedDate, showError]);
+
+  const presentCount = attendanceData.filter((r) => r.status === "Present").length;
+  const totalHours = attendanceData.reduce((sum, r) => sum + (r.hours || 0), 0);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Volunteers Date-Wise Attendance History</h2>
-      <p style={{ color: "#666" }}>Select a date to view attendance for all volunteers.</p>
+    <div>
+      <div className="page-header">
+        <div className="page-title-group">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Link to="/volunteers" className="btn btn-secondary btn-icon" title="Back to Volunteers">
+              <ArrowLeft size={16} />
+            </Link>
+            <div>
+              <h1 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <CalendarDays size={24} style={{ color: "var(--primary)" }} /> Volunteer Date-Wise Attendance Log
+              </h1>
+              <p>View daily attendance and service hours across all volunteers</p>
+            </div>
+          </div>
+        </div>
 
-      <div style={{ marginBottom: "25px", marginTop: "15px" }}>
-        <label style={{ fontWeight: "bold", marginRight: "10px" }}>Select Date: </label>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          style={{
-            padding: "8px 12px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            fontSize: "16px",
-          }}
-        />
+        <div className="page-actions">
+          <Link to="/volunteer/bulk-attendance" className="btn btn-success btn-sm" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <CalendarCheck size={14} /> Mark Bulk Attendance
+          </Link>
+        </div>
       </div>
 
+      {/* Date Picker & Counter Card */}
+      <div className="card" style={{ marginBottom: "24px", padding: "18px 24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <label className="form-label" style={{ margin: 0 }}>Select Date:</label>
+            <input
+              type="date"
+              className="form-input"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{ width: "auto" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "20px" }}>
+            <div>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>LOGGED ENTRIES</span>
+              <div style={{ fontWeight: 800, fontSize: "1.2rem", color: "var(--primary)" }}>{attendanceData.length}</div>
+            </div>
+            <div>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>PRESENT</span>
+              <div style={{ fontWeight: 800, fontSize: "1.2rem", color: "var(--success)" }}>{presentCount}</div>
+            </div>
+            <div>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700 }}>TOTAL SERVICE HOURS</span>
+              <div style={{ fontWeight: 800, fontSize: "1.2rem", color: "#d97706" }}>{totalHours} hrs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Records Table */}
       {loading ? (
-        <h3>Loading attendance records...</h3>
+        <div className="card" style={{ padding: "40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+          <Loader2 size={32} className="spin" style={{ color: "var(--primary)" }} />
+          <h3>Loading Date Records...</h3>
+        </div>
       ) : attendanceData.length === 0 ? (
-        <div style={{ padding: "20px", background: "#f9fafb", borderRadius: "8px", border: "1px solid #ddd" }}>
-          <p style={{ margin: 0, color: "#666" }}>
-            No attendance records found for <strong>{selectedDate}</strong>.
-          </p>
+        <div className="card" style={{ padding: "40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <Calendar size={40} style={{ color: "var(--text-muted)", marginBottom: "8px" }} />
+          <h3>No Attendance Records Found</h3>
+          <p style={{ marginTop: "4px" }}>No volunteers have logged attendance for <strong>{selectedDate}</strong>.</p>
+          <Link to="/volunteer/bulk-attendance" className="btn btn-primary" style={{ marginTop: "16px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <CalendarCheck size={14} /> Mark Attendance for this Date
+          </Link>
         </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              maxWidth: "900px",
-              borderCollapse: "collapse",
-              marginTop: "10px",
-              background: "#fff",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              borderRadius: "8px",
-            }}
-          >
+        <div className="table-responsive">
+          <table className="data-table">
             <thead>
-              <tr style={{ background: "#2563eb", color: "#fff", textAlign: "left" }}>
-                <th style={{ padding: "12px 15px" }}>Volunteer ID</th>
-                <th style={{ padding: "12px 15px" }}>Name</th>
-                <th style={{ padding: "12px 15px" }}>Status</th>
-                <th style={{ padding: "12px 15px" }}>Hours Worked</th>
+              <tr>
+                <th>Volunteer ID</th>
+                <th>Volunteer Name</th>
+                <th>Status</th>
+                <th>Hours Contributed</th>
               </tr>
             </thead>
             <tbody>
-              {attendanceData.map((record, index) => (
-                <tr
-                  key={record._id || index}
-                  style={{
-                    borderBottom: "1px solid #e5e7eb",
-                    backgroundColor: index % 2 === 0 ? "#fff" : "#f9fafb",
-                  }}
-                >
-                  <td style={{ padding: "12px 15px" }}>{record.volunteerId}</td>
-                  <td style={{ padding: "12px 15px", fontWeight: "500" }}>{record.name}</td>
-                  <td style={{ padding: "12px 15px" }}>
-                    <span
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        fontSize: "14px",
-                        fontWeight: "bold",
-                        background: record.status === "Present" ? "#d1fae5" : "#fee2e2",
-                        color: record.status === "Present" ? "#065f46" : "#991b1b",
-                      }}
-                    >
+              {attendanceData.map((record) => (
+                <tr key={record._id}>
+                  <td>
+                    <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--primary)" }}>
+                      {record.volunteerId || "N/A"}
+                    </span>
+                  </td>
+                  <td>
+                    <strong>{record.name}</strong>
+                  </td>
+                  <td>
+                    <span className={`badge badge-${record.status?.toLowerCase()}`}>
                       {record.status}
                     </span>
                   </td>
-                  <td style={{ padding: "12px 15px" }}>
-                    {record.status === "Present" ? `${record.hours || 0} hrs` : "—"}
+                  <td>
+                    <strong style={{ color: "#d97706" }}>
+                      {record.hours || 0} hrs
+                    </strong>
                   </td>
                 </tr>
               ))}

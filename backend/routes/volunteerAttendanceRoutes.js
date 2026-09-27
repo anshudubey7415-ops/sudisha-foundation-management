@@ -3,12 +3,20 @@ const router = express.Router();
 
 import Volunteer from "../models/Volunteer.js";
 import VolunteerAttendance from "../models/VolunteerAttendance.js";
+import Request from "../models/Request.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
+
+// Helper to check if a date string is past date
+const isPastDate = (dateStr) => {
+  if (!dateStr) return false;
+  const today = new Date().toISOString().split("T")[0];
+  return dateStr < today;
+};
 
 /* =========================
    Mark Single Attendance
 ========================= */
-
-router.post("/mark", async (req, res) => {
+router.post("/mark", verifyToken, async (req, res) => {
   try {
     const { volunteer, date, status, checkIn, checkOut, remarks } = req.body;
 
@@ -16,6 +24,25 @@ router.post("/mark", async (req, res) => {
 
     if (existing) {
       return res.status(400).json({ message: "Attendance already marked for this date" });
+    }
+
+    if (req.user?.role === "manager" && isPastDate(date)) {
+      const vol = await Volunteer.findById(volunteer);
+      const newRequest = new Request({
+        managerId: req.user.id,
+        targetUserId: volunteer,
+        targetName: `${vol?.name || "Volunteer"} Attendance (${date})`,
+        targetCollection: "volunteer_attendance",
+        changeType: "edit_volunteer_attendance",
+        changes: { volunteer, date, status, checkIn, checkOut, remarks },
+        reason: req.body.reason || `Manager requested past attendance creation for ${date}`,
+      });
+      await newRequest.save();
+      return res.status(200).json({
+        message: `Attendance request for ${date} submitted to Admin for approval!`,
+        pendingApproval: true,
+        request: newRequest,
+      });
     }
 
     let hoursWorked = 0;
@@ -39,19 +66,37 @@ router.post("/mark", async (req, res) => {
 /* =========================
    Bulk Manual Attendance
 ========================= */
-
-router.post("/bulk", async (req, res) => {
+router.post("/bulk", verifyToken, async (req, res) => {
   try {
-    const { records } = req.body;
+    const { records, date } = req.body;
 
     if (!records || records.length === 0) {
       return res.status(400).json({ message: "No attendance records provided" });
     }
 
+    const firstDate = date || records[0]?.date;
+
+    if (req.user?.role === "manager" && isPastDate(firstDate)) {
+      const newRequest = new Request({
+        managerId: req.user.id,
+        targetCollection: "volunteer_attendance",
+        changeType: "edit_volunteer_attendance",
+        targetName: `Volunteer Attendance (${firstDate || "Bulk"})`,
+        changes: { records, date: firstDate },
+        reason: req.body.reason || `Manager modified volunteer attendance for ${firstDate}`,
+      });
+      await newRequest.save();
+      return res.status(200).json({
+        message: `Volunteer attendance modification request for ${firstDate} submitted to Admin!`,
+        pendingApproval: true,
+        request: newRequest,
+      });
+    }
+
     const savedRecords = [];
     for (const record of records) {
-      const { volunteer, date, status } = record;
-      const existing = await VolunteerAttendance.findOne({ volunteer, date });
+      const { volunteer, date: recDate, status } = record;
+      const existing = await VolunteerAttendance.findOne({ volunteer, date: recDate });
 
       if (existing) {
         const updated = await VolunteerAttendance.findByIdAndUpdate(
@@ -61,7 +106,7 @@ router.post("/bulk", async (req, res) => {
         );
         savedRecords.push(updated);
       } else {
-        const newRecord = await VolunteerAttendance.create({ volunteer, date, status });
+        const newRecord = await VolunteerAttendance.create({ volunteer, date: recDate, status });
         savedRecords.push(newRecord);
       }
     }
@@ -75,12 +120,12 @@ router.post("/bulk", async (req, res) => {
 /* =========================
    Get All Attendance
 ========================= */
-
 router.get("/", async (req, res) => {
   try {
     const records = await VolunteerAttendance.find()
       .populate("volunteer", "volunteerId name")
-      .sort({ date: -1 });
+      .sort({ date: -1 })
+      .lean();
     res.json(records);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -90,7 +135,6 @@ router.get("/", async (req, res) => {
 /* =========================
    Attendance By Volunteer
 ========================= */
-
 router.get("/volunteer/:id", async (req, res) => {
   try {
     const records = await VolunteerAttendance.find({ volunteer: req.params.id })
@@ -103,11 +147,36 @@ router.get("/volunteer/:id", async (req, res) => {
 });
 
 /* =========================
+   Get Single Attendance Record
+========================= */
+router.get("/record/:id", async (req, res) => {
+  try {
+    const record = await VolunteerAttendance.findById(req.params.id).populate("volunteer");
+    if (!record) return res.status(404).json({ message: "Record not found" });
+    res.json(record);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const record = await VolunteerAttendance.findById(req.params.id).populate("volunteer");
+    if (!record) return res.status(404).json({ message: "Record not found" });
+    res.json(record);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+/* =========================
    Update Attendance
 ========================= */
-
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, async (req, res) => {
   try {
+    const existing = await VolunteerAttendance.findById(req.params.id).populate("volunteer");
+    if (!existing) return res.status(404).json({ message: "Attendance not found" });
+
     const { checkIn, checkOut } = req.body;
     let hoursWorked = 0;
 
@@ -118,13 +187,32 @@ router.put("/:id", async (req, res) => {
       if (hoursWorked < 0) hoursWorked = 0;
     }
 
+    const targetDate = req.body.date || existing.date;
+
+    if (req.user?.role === "manager" && isPastDate(targetDate)) {
+      const newRequest = new Request({
+        managerId: req.user.id,
+        targetUserId: existing._id,
+        targetName: `${existing.volunteer?.name || "Volunteer"} Attendance (${targetDate})`,
+        targetCollection: "volunteer_attendance",
+        changeType: "edit_volunteer_attendance",
+        changes: { ...req.body, hoursWorked },
+        reason: req.body.reason || `Manager edited past attendance record for ${targetDate}`,
+      });
+      await newRequest.save();
+      return res.status(200).json({
+        message: `Volunteer attendance edit request submitted to Admin for approval!`,
+        pendingApproval: true,
+        request: newRequest,
+      });
+    }
+
     const attendance = await VolunteerAttendance.findByIdAndUpdate(
       req.params.id,
       { ...req.body, hoursWorked },
       { new: true }
     );
 
-    if (!attendance) return res.status(404).json({ message: "Attendance not found" });
     res.json(attendance);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -134,7 +222,6 @@ router.put("/:id", async (req, res) => {
 /* =========================
    Delete Attendance
 ========================= */
-
 router.delete("/:id", async (req, res) => {
   try {
     const attendance = await VolunteerAttendance.findByIdAndDelete(req.params.id);
@@ -148,7 +235,6 @@ router.delete("/:id", async (req, res) => {
 /* =========================
    Volunteer Analytics
 ========================= */
-
 router.get("/analytics/:id", async (req, res) => {
   try {
     const records = await VolunteerAttendance.find({ volunteer: req.params.id });

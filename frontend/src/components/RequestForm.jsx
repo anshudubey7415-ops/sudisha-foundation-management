@@ -1,74 +1,164 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import API from "../api";
+import { useToast } from "../context/ToastContext";
 
 const RequestForm = ({ targetUserId, targetCollection, currentData, onClose }) => {
+  const { showSuccess, showError } = useToast();
   const [changes, setChanges] = useState({ ...currentData });
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Jin fields ko edit nahi karne dena
-  const restrictedFields = ["_id", "password", "__v", "role", "email", "createdAt", "updatedAt"];
+  // Restricted/Internal fields that should not be edited
+  const restrictedFields = [
+    "_id",
+    "password",
+    "__v",
+    "role",
+    "email",
+    "createdAt",
+    "updatedAt",
+    "presentDays",
+    "totalAttendanceDays",
+    "attendancePercentage",
+    "totalHours",
+    "photo"
+  ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!reason.trim()) {
+      showError("Please enter a reason for this change request.");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Yahan ab 'targetCollection' bhi bheja ja raha hai
       await API.post("/requests", {
         targetUserId,
-        targetCollection, // Prop se aaya hua dynamic value (students/interns/volunteers)
+        targetCollection,
         changeType: "update_profile",
         changes,
-        reason
+        reason: reason.trim()
       });
-      alert("Request sent to Admin successfully!");
+      showSuccess("Change request submitted to Admin for approval!");
       onClose();
     } catch (err) {
-      alert("Error: " + (err.response?.data?.message || err.message));
+      console.error(err);
+      showError(err.response?.data?.message || "Failed to submit request.");
     } finally {
       setLoading(false);
     }
   };
 
+  const formatLabel = (key) => {
+    return key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase());
+  };
+
   return (
-    <div className="modal-overlay" style={{ padding: "20px", background: "#fff", borderRadius: "8px", border: "1px solid #ccc", position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 1000, width: "400px" }}>
-      <form onSubmit={handleSubmit} className="request-form">
-        <h3>Request Update for {currentData.name || "User"}</h3>
-        
-        {Object.keys(changes).map((key) => {
-          if (restrictedFields.includes(key)) return null;
-
-          return (
-            <div key={key} style={{ marginBottom: "10px" }}>
-              <label style={{ display: "block", fontSize: "12px", color: "#666" }}>{key.toUpperCase()}: </label>
-              <input 
-                value={changes[key] || ""} 
-                onChange={(e) => setChanges({...changes, [key]: e.target.value})} 
-                style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }}
-              />
-            </div>
-          );
-        })}
-
-        <div style={{ marginTop: "15px" }}>
-          <label>Reason for change: </label>
-          <textarea 
-            value={reason} 
-            onChange={(e) => setReason(e.target.value)}
-            required
-            style={{ width: "100%", height: "60px", marginTop: "5px" }}
-          />
-        </div>
-        
-        <div style={{ marginTop: "15px" }}>
-          <button type="submit" disabled={loading} style={{ background: "#2563eb", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer" }}>
-            {loading ? "Sending..." : "Send to Admin"}
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(15, 23, 42, 0.75)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+        padding: "20px",
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          width: "100%",
+          maxWidth: "520px",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          padding: "28px",
+          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+          position: "relative",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--text-primary)" }}>
+              Request Update
+            </h3>
+            <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+              Submitting for: <strong>{currentData?.name || "Record"}</strong> ({targetCollection})
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: "1.25rem",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <X size={20} />
           </button>
-          <button type="button" onClick={onClose} style={{ marginLeft: "10px", padding: "10px 20px", cursor: "pointer" }}>
-            Cancel
-          </button>
         </div>
-      </form>
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            {Object.keys(changes).map((key) => {
+              if (restrictedFields.includes(key)) return null;
+              if (typeof changes[key] === "object" && changes[key] !== null) return null;
+
+              return (
+                <div key={key} style={{ gridColumn: key === "address" || key === "remarks" ? "1 / -1" : "auto" }}>
+                  <label className="form-label" style={{ fontSize: "0.82rem", fontWeight: 600 }}>
+                    {formatLabel(key)}
+                  </label>
+                  <input
+                    className="form-control"
+                    value={changes[key] || ""}
+                    onChange={(e) => setChanges({ ...changes, [key]: e.target.value })}
+                    style={{ fontSize: "0.9rem" }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <div>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: "0.88rem" }}>
+              Reason for Modification <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <textarea
+              className="form-control"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Explain why this profile update is required..."
+              required
+              rows={3}
+              style={{ resize: "vertical" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+            <button type="button" onClick={onClose} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading} className="btn btn-primary">
+              {loading ? "Submitting..." : "Send Request to Admin"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

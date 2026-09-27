@@ -7,14 +7,28 @@ const requestSchema = new mongoose.Schema({
     required: true 
   },
   targetUserId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    required: true 
+    type: mongoose.Schema.Types.Mixed, 
+    required: false,
+    default: null 
   },
-  // Nayi field: Isse pata chalega ki update 'students', 'interns' ya 'volunteers' collection mein karna hai
+  targetName: {
+    type: String,
+    default: ""
+  },
   targetCollection: { 
     type: String, 
     required: true,
-    enum: ['students', 'interns', 'volunteers'] 
+    enum: [
+      'students', 
+      'interns', 
+      'volunteers', 
+      'student_attendance', 
+      'intern_attendance', 
+      'volunteer_attendance', 
+      'projects',
+      'users',
+      'passwords'
+    ] 
   },
   changeType: { 
     type: String, 
@@ -25,27 +39,14 @@ const requestSchema = new mongoose.Schema({
     required: true 
   },
   reason: { 
-    type: String 
+    type: String,
+    default: ""
   },
   status: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected'], 
     default: 'pending' 
-  },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
-  },
-  updatedAt: { 
-    type: Date 
   }
-});
-
-requestSchema.pre('save', function(next) {
-  if (this.isModified('status')) {
-    this.updatedAt = new Date();
-  }
-  next();
-});
+}, { timestamps: true });
 
 export default mongoose.model('Request', requestSchema);

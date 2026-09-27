@@ -1,177 +1,655 @@
 import { useEffect, useState, useCallback } from "react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { useNavigate } from "react-router-dom";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  LayoutDashboard,
+  GraduationCap,
+  Briefcase,
+  HeartHandshake,
+  FolderKanban,
+  FileBarChart,
+  Users,
+  Inbox,
+  Bell,
+  CalendarCheck,
+  CheckCircle2,
+  XCircle,
+  Activity,
+  PieChart as PieChartIcon,
+  Check,
+  X,
+  ArrowRight,
+  Loader2,
+  Plus,
+  Calendar,
+  Layers,
+  ShieldCheck
+} from "lucide-react";
+import { useToast } from "../context/ToastContext";
 import API from "../api";
-
-const Card = ({ title, count, color, onClick, suffix = "" }) => (
-  <div 
-    onClick={onClick} 
-    style={{ 
-      background: "white", 
-      borderLeft: `5px solid ${color}`, 
-      padding: "20px", 
-      borderRadius: "8px", 
-      boxShadow: "0 2px 10px rgba(0,0,0,0.05)", 
-      cursor: onClick ? "pointer" : "default",
-      transition: "transform 0.2s" 
-    }} 
-    onMouseOver={(e) => (e.currentTarget.style.transform = "translateY(-5px)")} 
-    onMouseOut={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-  >
-    <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>{title}</p>
-    <h2 style={{ margin: "10px 0 0 0", color: "#1e3a8a" }}>{count}{suffix}</h2>
-  </div>
-);
 
 function AdminDashboard() {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
+
   const [stats, setStats] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [todayRecords, setTodayRecords] = useState({ students: [], interns: [], volunteers: [] });
   const [requests, setRequests] = useState([]);
   const [selectedTitle, setSelectedTitle] = useState("");
   const [selectedList, setSelectedList] = useState([]);
-  const [filterDate] = useState(new Date().toISOString().split("T")[0]);
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
+  const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
-      const [sRes, iRes, vRes, saRes, iaRes, vaRes, pRes, reqRes] = await Promise.all([
-        API.get("/students"), API.get("/interns"), API.get("/volunteers"),
-        API.get("/attendance"), API.get("/intern-attendance"), API.get("/volunteer-attendance"),
-        API.get("/projects"), API.get("/requests/pending")
+      setLoading(true);
+      const [sRes, iRes, vRes, saRes, iaRes, vaRes, pRes, reqRes, annRes] = await Promise.all([
+        API.get("/students").catch(() => ({ data: [] })),
+        API.get("/interns").catch(() => ({ data: [] })),
+        API.get("/volunteers").catch(() => ({ data: [] })),
+        API.get("/attendance").catch(() => ({ data: [] })),
+        API.get("/intern-attendance").catch(() => ({ data: [] })),
+        API.get("/volunteer-attendance").catch(() => ({ data: [] })),
+        API.get("/projects").catch(() => ({ data: [] })),
+        API.get("/requests/pending").catch(() => ({ data: [] })),
+        API.get("/announcements").catch(() => ({ data: [] }))
       ]);
 
-      setProjects(pRes.data);
-      setRequests(reqRes.data);
+      setProjects(pRes.data || []);
+      setRequests(reqRes.data || []);
+      setAnnouncements(annRes.data || []);
 
-      const filteredS = saRes.data.filter(r => r.date === filterDate);
-      const filteredI = iaRes.data.filter(r => r.date === filterDate);
-      const filteredV = vaRes.data.filter(r => r.date === filterDate);
+      const filteredS = (saRes.data || []).filter(r => r.date === filterDate);
+      const filteredI = (iaRes.data || []).filter(r => r.date === filterDate);
+      const filteredV = (vaRes.data || []).filter(r => r.date === filterDate);
 
       setTodayRecords({ students: filteredS, interns: filteredI, volunteers: filteredV });
+      
+      const totalStudents = (sRes.data || []).length;
+      const presentStudents = filteredS.filter(r => r.status === "Present").length;
+      const absentStudents = filteredS.filter(r => r.status === "Absent").length;
+      
+      const totalInterns = (iRes.data || []).length;
+      const presentInterns = filteredI.filter(r => r.status === "Present").length;
+      
+      const totalVolunteers = (vRes.data || []).length;
+      const presentVolunteers = filteredV.filter(r => r.status === "Present").length;
+
       setStats({
-        students: { total: sRes.data.length, present: filteredS.filter(r => r.status === "Present").length, absent: filteredS.filter(r => r.status === "Absent").length },
-        interns: { total: iRes.data.length, present: filteredI.filter(r => r.status === "Present").length, absent: filteredI.filter(r => r.status === "Absent").length },
-        volunteers: { total: vRes.data.length, present: filteredV.filter(r => r.status === "Present").length, absent: filteredV.filter(r => r.status === "Absent").length }
+        students: { total: totalStudents, present: presentStudents, absent: absentStudents },
+        interns: { total: totalInterns, present: presentInterns, absent: filteredI.filter(r => r.status === "Absent").length },
+        volunteers: { total: totalVolunteers, present: presentVolunteers, absent: filteredV.filter(r => r.status === "Absent").length },
       });
-    } catch (err) { console.error("Error loading dashboard:", err); }
-  }, [filterDate]);
+    } catch (err) {
+      console.error("Error loading dashboard:", err);
+      showError("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  }, [filterDate, showError]);
 
   useEffect(() => {
-    const userRole = localStorage.getItem("role") || "";
-    if (userRole.toLowerCase() !== "admin") {
-      alert("Access Denied");
+    const userRole = (localStorage.getItem("role") || "").toLowerCase();
+    if (userRole !== "admin") {
       navigate("/manager-dashboard");
+      return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, [navigate, loadData]);
 
   const handleStatusUpdate = async (id, status) => {
-    await API.put(`/requests/${id}`, { status });
-    loadData();
+    try {
+      await API.put(`/requests/${id}`, { status });
+      showSuccess(`Request ${status} successfully!`);
+      loadData();
+    } catch (err) {
+      showError("Failed to update request status: " + (err.response?.data?.message || err.message));
+    }
   };
 
-  const btnStyle = { padding: "8px 12px", background: "#1e3a8a", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px" };
+  const projectStatusData = [
+    { name: "Active Projects", value: projects.filter(p => p.status === "Active" || !p.status).length, color: "#2563eb" },
+    { name: "Completed", value: projects.filter(p => p.status === "Completed").length, color: "#10b981" }
+  ];
 
-  if (!stats) return <div style={{ padding: "50px", textAlign: "center" }}><h2>Loading...</h2></div>;
+  const distributionData = [
+    { name: "Students", count: stats?.students?.total || 0, present: stats?.students?.present || 0 },
+    { name: "Interns", count: stats?.interns?.total || 0, present: stats?.interns?.present || 0 },
+    { name: "Volunteers", count: stats?.volunteers?.total || 0, present: stats?.volunteers?.present || 0 }
+  ];
+
+  const studentAttendanceRate = stats?.students?.total > 0
+    ? Math.round((stats.students.present / stats.students.total) * 100)
+    : 0;
+
+  if (loading && !stats) {
+    return (
+      <div style={{ padding: "80px", textAlign: "center" }}>
+        <div style={{ display: "inline-flex", padding: "16px", background: "var(--primary-light)", color: "var(--primary)", borderRadius: "50%", marginBottom: "16px" }}>
+          <Loader2 size={32} className="animate-spin" />
+        </div>
+        <h2>Loading Admin Dashboard...</h2>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: "30px", background: "#f8fafc", minHeight: "100vh" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
-        <h1 style={{ color: "#1e3a8a", margin: 0 }}>Admin Dashboard - Sudisha Foundation</h1>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button onClick={() => navigate("/user-management")} style={{ padding: "10px", background: "#059669", color: "white", border: "none", borderRadius: "5px" }}>Manage Users</button>
-          <button onClick={() => navigate("/all-announcements")} style={{ padding: "10px", background: "#8b5cf6", color: "white", border: "none", borderRadius: "5px" }}>Announcements</button>
-          <button onClick={() => navigate("/settings")} style={{ padding: "10px", background: "#334155", color: "white", border: "none", borderRadius: "5px" }}>Settings</button>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {/* =========================================================
+          1. TOP HEADER & CONTEXT BAR
+          ========================================================= */}
+      <div className="page-header" style={{ marginBottom: "4px" }}>
+        <div className="page-title-group">
+          <h1>
+            <LayoutDashboard size={26} color="var(--primary)" /> Admin Dashboard
+          </h1>
+          <p>Sudisha Foundation Management & Operational Command Center</p>
+        </div>
+
+        <div className="page-actions">
+          {/* Integrated Date Filter */}
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "var(--bg-card)",
+            padding: "5px 12px",
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--border-color)",
+            boxShadow: "var(--shadow-xs)"
+          }}>
+            <Calendar size={15} color="var(--primary)" />
+            <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: "var(--text-muted)" }}>Date:</span>
+            <input 
+              type="date" 
+              className="form-input" 
+              style={{
+                width: "auto",
+                padding: "3px 8px",
+                fontSize: "0.8125rem",
+                border: "none",
+                background: "transparent",
+                color: "var(--text-main)",
+                fontWeight: 600,
+                outline: "none"
+              }}
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+            />
+          </div>
+
+          <Link to="/user-management" className="btn btn-success btn-sm">
+            <Users size={15} /> Manage Users
+          </Link>
+          <Link to="/all-announcements" className="btn btn-primary btn-sm">
+            <Bell size={15} /> Announcements
+          </Link>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "30px" }}>
-        <div style={{ background: "white", padding: "15px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-          <h4 style={{ margin: "0 0 10px 0" }}>Mission Akshar 🧒</h4>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-            <button style={btnStyle} onClick={() => navigate("/students")}>Details</button>
-            <button style={btnStyle} onClick={() => navigate("/add-student")}>Add</button>
-            <button style={btnStyle} onClick={() => navigate("/attendance")}>Attendance</button>
-          </div>
-        </div>
-        <div style={{ background: "white", padding: "15px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-          <h4 style={{ margin: "0 0 10px 0" }}>Intern Module</h4>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-            <button style={btnStyle} onClick={() => navigate("/interns")}>Details</button>
-            <button style={btnStyle} onClick={() => navigate("/add-intern")}>Add</button>
-            <button style={btnStyle} onClick={() => navigate("/intern-attendance")}>Attendance</button>
-          </div>
-        </div>
-        <div style={{ background: "white", padding: "15px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-          <h4 style={{ margin: "0 0 10px 0" }}>Volunteer Module</h4>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-            <button style={btnStyle} onClick={() => navigate("/volunteers")}>Details</button>
-            <button style={btnStyle} onClick={() => navigate("/add-volunteer")}>Add</button>
-            <button style={btnStyle} onClick={() => navigate("/volunteer-attendance")}>Attendance</button>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ background: "#fff", padding: "20px", borderRadius: "8px", marginBottom: "30px", border: "1px solid #e2e8f0" }}>
-        <h3 
-            style={{ color: "#1e3a8a", marginTop: 0, cursor: "pointer", display: "inline-block" }} 
-            onClick={() => navigate("/admin-requests")} // Yahan click karne par navigate hoga
-        >
-            Pending Requests ({requests.length}) ➔
-        </h3>
-        {requests.map(req => (
-          <div key={req._id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
-            <span><strong>{req.userName}</strong> - {req.requestType}</span>
-            <div>
-              <button onClick={() => handleStatusUpdate(req._id, 'approved')} style={{ background: "#22c55e", color: "white", border: "none", padding: "5px 10px", marginRight: "5px", borderRadius: "4px" }}>Accept</button>
-              <button onClick={() => handleStatusUpdate(req._id, 'rejected')} style={{ background: "#ef4444", color: "white", border: "none", padding: "5px 10px", borderRadius: "4px" }}>Reject</button>
+      {/* =========================================================
+          2. TOP KPI STATS (PRIMARY OVERVIEW FIRST)
+          ========================================================= */}
+      <div className="stats-grid">
+        {/* Total Students */}
+        <div className="stat-card" style={{ "--card-accent": "var(--primary-gradient)" }} onClick={() => navigate("/students")}>
+          <div className="stat-top">
+            <span className="stat-label">Mission Akshar</span>
+            <div className="stat-icon" style={{ "--stat-icon-bg": "var(--primary-light)", "--stat-icon-color": "var(--primary)" }}>
+              <GraduationCap size={22} />
             </div>
           </div>
-        ))}
-      </div>
-
-      <h3 style={{ color: "#334155" }}>📚 Analytics Overview</h3>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
-        <Card title="Total Students" count={stats.students.total} color="#2563eb" />
-        <Card title="Present Students" count={stats.students.present} color="#16a34a" onClick={() => { setSelectedTitle("Present Students"); setSelectedList(todayRecords.students.filter(r => r.status === "Present")); }} />
-        <Card title="Absent Students" count={stats.students.absent} color="#dc2626" onClick={() => { setSelectedTitle("Absent Students"); setSelectedList(todayRecords.students.filter(r => r.status === "Absent")); }} />
-        <Card title="Total Interns" count={stats.interns.total} color="#7c3aed" />
-        <Card title="Present Interns" count={stats.interns.present} color="#16a34a" onClick={() => { setSelectedTitle("Present Interns"); setSelectedList(todayRecords.interns.filter(r => r.status === "Present")); }} />
-        <Card title="Absent Interns" count={stats.interns.absent} color="#dc2626" onClick={() => { setSelectedTitle("Absent Interns"); setSelectedList(todayRecords.interns.filter(r => r.status === "Absent")); }} />
-        <Card title="Total Volunteers" count={stats.volunteers.total} color="#d97706" />
-        <Card title="Present Volunteers" count={stats.volunteers.present} color="#16a34a" onClick={() => { setSelectedTitle("Present Volunteers"); setSelectedList(todayRecords.volunteers.filter(r => r.status === "Present")); }} />
-        <Card title="Absent Volunteers" count={stats.volunteers.absent} color="#dc2626" onClick={() => { setSelectedTitle("Absent Volunteers"); setSelectedList(todayRecords.volunteers.filter(r => r.status === "Absent")); }} />
-      </div>
-
-      <h3 style={{ marginTop: "30px", color: "#334155" }}>📊 Visual Insights</h3>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
-        <div style={{ background: "white", padding: "20px", borderRadius: "8px" }}>
-          <h4>Project Status</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={[{name: "Active", value: projects.filter(p => p.status === "Active").length}, {name: "Completed", value: projects.filter(p => p.status === "Completed").length}]} dataKey="value" fill="#8884d8"><Cell fill="#2563eb" /><Cell fill="#16a34a" /></Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="stat-value">{stats?.students?.total || 0}</div>
+          <div className="stat-subtitle">
+            <span className="badge badge-primary" style={{ padding: "2px 8px" }}>Enrolled Students</span>
+          </div>
         </div>
-        <div style={{ background: "white", padding: "20px", borderRadius: "8px" }}>
-          <h4>Member Distribution</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={[{name: 'Students', count: stats.students.total}, {name: 'Interns', count: stats.interns.total}, {name: 'Volunteers', count: stats.volunteers.total}]}>
-              <XAxis dataKey="name" /><Tooltip /><Bar dataKey="count" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
+
+        {/* Present Students */}
+        <div
+          className="stat-card"
+          style={{ "--card-accent": "var(--accent-gradient)" }}
+          onClick={() => {
+            setSelectedTitle("Present Students Today");
+            setSelectedList(todayRecords.students.filter(r => r.status === "Present"));
+          }}
+        >
+          <div className="stat-top">
+            <span className="stat-label">Students Present</span>
+            <div className="stat-icon" style={{ "--stat-icon-bg": "#ecfdf5", "--stat-icon-color": "#10b981" }}>
+              <CheckCircle2 size={22} />
+            </div>
+          </div>
+          <div className="stat-value" style={{ color: "#10b981" }}>
+            {stats?.students?.present || 0}
+            <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-muted)", marginLeft: "6px" }}>
+              ({studentAttendanceRate}%)
+            </span>
+          </div>
+          <div className="stat-subtitle">
+            <span className="badge badge-success" style={{ padding: "2px 8px" }}>
+              {stats?.students?.absent || 0} Absent
+            </span>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>Click to view</span>
+          </div>
+        </div>
+
+        {/* Active Interns */}
+        <div className="stat-card" style={{ "--card-accent": "var(--secondary-gradient)" }} onClick={() => navigate("/interns")}>
+          <div className="stat-top">
+            <span className="stat-label">Internships</span>
+            <div className="stat-icon" style={{ "--stat-icon-bg": "rgba(124, 58, 237, 0.12)", "--stat-icon-color": "#7c3aed" }}>
+              <Briefcase size={22} />
+            </div>
+          </div>
+          <div className="stat-value">{stats?.interns?.total || 0}</div>
+          <div className="stat-subtitle">
+            <span className="badge badge-role-intern" style={{ padding: "2px 8px" }}>
+              {stats?.interns?.present || 0} Present Today
+            </span>
+          </div>
+        </div>
+
+        {/* Volunteers */}
+        <div className="stat-card" style={{ "--card-accent": "var(--gold-gradient)" }} onClick={() => navigate("/volunteers")}>
+          <div className="stat-top">
+            <span className="stat-label">Volunteer Network</span>
+            <div className="stat-icon" style={{ "--stat-icon-bg": "rgba(245, 158, 11, 0.12)", "--stat-icon-color": "#f59e0b" }}>
+              <HeartHandshake size={22} />
+            </div>
+          </div>
+          <div className="stat-value">{stats?.volunteers?.total || 0}</div>
+          <div className="stat-subtitle">
+            <span className="badge badge-role-volunteer" style={{ padding: "2px 8px" }}>
+              {stats?.volunteers?.present || 0} Present Today
+            </span>
+          </div>
+        </div>
+
+        {/* Active Projects */}
+        <div className="stat-card" style={{ "--card-accent": "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)" }} onClick={() => navigate("/all-projects")}>
+          <div className="stat-top">
+            <span className="stat-label">Projects</span>
+            <div className="stat-icon" style={{ "--stat-icon-bg": "rgba(2, 132, 199, 0.12)", "--stat-icon-color": "#0284c7" }}>
+              <FolderKanban size={22} />
+            </div>
+          </div>
+          <div className="stat-value">{projects.length}</div>
+          <div className="stat-subtitle">
+            <span className="badge badge-info" style={{ padding: "2px 8px" }}>Active Initiatives</span>
+          </div>
         </div>
       </div>
 
+      {/* =========================================================
+          3. MAIN SECTION: 2 BALANCED COLUMNS
+          ========================================================= */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "24px" }}>
+        
+        {/* LEFT COLUMN: PROGRAM OPERATIONS HUB */}
+        <div className="card" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div className="card-header" style={{ marginBottom: 0, paddingBottom: "14px" }}>
+            <h3 className="card-title">
+              <Layers size={19} color="var(--primary)" /> Program Management Hub
+            </h3>
+            <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontWeight: 600 }}>Quick Actions</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {/* Mission Akshar Item */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 16px",
+              background: "var(--bg-surface)",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border-color)",
+              flexWrap: "wrap",
+              gap: "12px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "var(--primary-light)",
+                  color: "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}>
+                  <GraduationCap size={20} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: "var(--text-heading)", fontSize: "0.9375rem" }}>
+                    Mission Akshar (Students)
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    {stats?.students?.total || 0} enrolled &bull; {stats?.students?.present || 0} present today
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                <button onClick={() => navigate("/students")} className="btn btn-secondary btn-sm">
+                  Directory
+                </button>
+                <button onClick={() => navigate("/add-student")} className="btn btn-outline btn-sm">
+                  <Plus size={13} /> Add
+                </button>
+                <button onClick={() => navigate("/attendance")} className="btn btn-primary btn-sm">
+                  <CalendarCheck size={13} /> Attendance
+                </button>
+              </div>
+            </div>
+
+            {/* Interns Program Item */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 16px",
+              background: "var(--bg-surface)",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border-color)",
+              flexWrap: "wrap",
+              gap: "12px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "rgba(124, 58, 237, 0.12)",
+                  color: "#7c3aed",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}>
+                  <Briefcase size={20} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: "var(--text-heading)", fontSize: "0.9375rem" }}>
+                    Internship Operations
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    {stats?.interns?.total || 0} active &bull; certificates & records
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                <button onClick={() => navigate("/interns")} className="btn btn-secondary btn-sm">
+                  Directory
+                </button>
+                <button onClick={() => navigate("/add-intern")} className="btn btn-outline btn-sm">
+                  <Plus size={13} /> Add
+                </button>
+                <button onClick={() => navigate("/intern-attendance")} className="btn btn-primary btn-sm">
+                  <CalendarCheck size={13} /> Attendance
+                </button>
+              </div>
+            </div>
+
+            {/* Volunteer Program Item */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 16px",
+              background: "var(--bg-surface)",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border-color)",
+              flexWrap: "wrap",
+              gap: "12px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "rgba(245, 158, 11, 0.12)",
+                  color: "#f59e0b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}>
+                  <HeartHandshake size={20} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: "var(--text-heading)", fontSize: "0.9375rem" }}>
+                    Volunteer Network
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    {stats?.volunteers?.total || 0} volunteers &bull; hours & badges
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                <button onClick={() => navigate("/volunteers")} className="btn btn-secondary btn-sm">
+                  Directory
+                </button>
+                <button onClick={() => navigate("/add-volunteer")} className="btn btn-outline btn-sm">
+                  <Plus size={13} /> Add
+                </button>
+                <button onClick={() => navigate("/volunteer/bulk-attendance")} className="btn btn-primary btn-sm">
+                  <CalendarCheck size={13} /> Bulk Log
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: PENDING APPROVAL REQUESTS */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">
+                <Inbox size={19} color="var(--primary)" /> Manager Approval Requests ({requests.length})
+              </h3>
+              <Link to="/admin-requests" className="btn btn-outline btn-sm">
+                View All <ArrowRight size={13} />
+              </Link>
+            </div>
+
+            {requests.length === 0 ? (
+              <div style={{ padding: "28px 16px", textAlign: "center", color: "var(--text-muted)" }}>
+                <ShieldCheck size={36} color="var(--success)" style={{ margin: "0 auto 8px" }} />
+                <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-heading)" }}>No Pending Requests</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                  All manager modification requests are resolved.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {requests.slice(0, 3).map((req) => (
+                  <div 
+                    key={req._id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "12px 14px",
+                      background: "var(--bg-surface)",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-color)",
+                      flexWrap: "wrap",
+                      gap: "10px"
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-heading)" }}>
+                        {req.managerId?.name || "Manager"} &bull; <span style={{ textTransform: "capitalize" }}>{req.changeType}</span>
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        Target: {req.targetCollection} {req.reason ? `• "${req.reason}"` : ""}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button 
+                        onClick={() => handleStatusUpdate(req._id, 'approved')} 
+                        className="btn btn-success btn-sm btn-icon"
+                        title="Approve"
+                        style={{ width: "32px", height: "32px", padding: 0 }}
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleStatusUpdate(req._id, 'rejected')} 
+                        className="btn btn-danger btn-sm btn-icon"
+                        title="Reject"
+                        style={{ width: "32px", height: "32px", padding: 0 }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Announcements Card */}
+          {announcements.length > 0 && (
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title">
+                  <Bell size={19} color="var(--primary)" /> Foundation Notices
+                </h3>
+                <Link to="/all-announcements" className="btn btn-outline btn-sm">
+                  All <ArrowRight size={13} />
+                </Link>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {announcements.slice(0, 2).map((a) => (
+                  <div 
+                    key={a._id}
+                    style={{
+                      padding: "10px 14px",
+                      background: "var(--bg-surface)",
+                      borderRadius: "var(--radius-sm)",
+                      borderLeft: "3px solid var(--primary)"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--text-heading)" }}>{a.title}</span>
+                      <small style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>
+                        {a.date ? new Date(a.date).toLocaleDateString() : "Notice"}
+                      </small>
+                    </div>
+                    <p style={{ margin: "4px 0 0", fontSize: "0.8125rem", color: "var(--text-muted)", lineClamp: 2 }}>{a.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* =========================================================
+          4. VISUAL CHARTS & METRICS
+          ========================================================= */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "24px" }}>
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">
+              <FileBarChart size={19} color="var(--primary)" /> Member Attendance Breakdown
+            </h3>
+          </div>
+          <div style={{ height: "260px", width: "100%" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={distributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} />
+                <YAxis stroke="var(--text-muted)" fontSize={12} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-color)", borderRadius: "8px", color: "var(--text-main)" }} 
+                />
+                <Legend />
+                <Bar dataKey="count" name="Total Members" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="present" name="Present Today" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">
+              <PieChartIcon size={19} color="var(--primary)" /> Project Initiatives
+            </h3>
+          </div>
+          <div style={{ height: "260px", width: "100%" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie 
+                  data={projectStatusData} 
+                  dataKey="value" 
+                  nameKey="name" 
+                  cx="50%" 
+                  cy="50%" 
+                  outerRadius={80} 
+                  innerRadius={45}
+                  paddingAngle={5}
+                >
+                  {projectStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-color)", borderRadius: "8px", color: "var(--text-main)" }} 
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================
+          5. MODAL FOR PRESENT / ABSENT STUDENT LIST
+          ========================================================= */}
       {selectedList.length > 0 && (
-        <div style={{ marginTop: "30px", padding: "20px", background: "white", borderRadius: "8px" }}>
-          <h3>{selectedTitle}</h3>
-          {selectedList.map((r) => (
-            <div key={r._id} style={{ padding: "10px", borderBottom: "1px solid #f1f5f9" }}>{r.student?.name || r.intern?.name || r.volunteer?.name || "N/A"}</div>
-          ))}
+        <div className="modal-overlay" onClick={() => setSelectedList([])}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">{selectedTitle} ({selectedList.length})</h3>
+              <button className="btn btn-secondary btn-icon" onClick={() => setSelectedList([])} aria-label="Close">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: "400px", overflowY: "auto" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {selectedList.map((r, i) => (
+                  <div 
+                    key={r._id || i} 
+                    style={{
+                      padding: "10px 14px",
+                      background: "var(--bg-surface)",
+                      borderRadius: "var(--radius-sm)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, color: "var(--text-heading)" }}>
+                      {r.student?.name || r.intern?.name || r.volunteer?.name || "Member Record"}
+                    </span>
+                    <span className={`badge badge-${r.status?.toLowerCase() === 'present' ? 'active' : 'absent'}`}>{r.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setSelectedList([])}>Close</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

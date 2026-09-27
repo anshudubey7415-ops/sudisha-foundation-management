@@ -1,39 +1,35 @@
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
-const Layout = ({ children, title }) => {
+const Layout = ({ children, title, subtitle, actions }) => {
   const navigate = useNavigate();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-      <header style={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        padding: "15px 25px", 
-        background: "white",
-        borderBottom: "1px solid #e2e8f0" 
-      }}>
-        {/* Back button logic: check if history exists */}
-        <button 
-          onClick={() => navigate(-1)} 
-          style={{ padding: "8px 15px", cursor: "pointer", borderRadius: "5px", border: "1px solid #ccc" }}
-        >
-          ⬅️ Back
-        </button>
-        
-        <h2 style={{ margin: 0, fontSize: "1.25rem", color: "#1e3a8a" }}>{title}</h2>
-        
-        <button 
-          onClick={() => navigate("/settings")} 
-          style={{ padding: "8px 15px", cursor: "pointer", borderRadius: "5px", border: "1px solid #ccc" }}
-        >
-          ⚙️ Settings
-        </button>
-      </header>
-      
-      <main style={{ padding: "20px" }}>
+    <div className="layout-page-wrapper">
+      <div className="page-header">
+        <div className="page-title-group">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button
+              onClick={() => navigate(-1)}
+              className="btn btn-secondary btn-icon"
+              title="Go Back"
+              style={{ width: "36px", height: "36px", padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h1>{title}</h1>
+              {subtitle && <p>{subtitle}</p>}
+            </div>
+          </div>
+        </div>
+
+        {actions && <div className="page-actions">{actions}</div>}
+      </div>
+
+      <div className="layout-page-body">
         {children}
-      </main>
+      </div>
     </div>
   );
 };
