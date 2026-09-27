@@ -24,5 +24,10 @@
     "mongoose": "^9.7.1",
     "multer": "^2.2.0",
     "nodemailer": "^10.0.10"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   }
 }

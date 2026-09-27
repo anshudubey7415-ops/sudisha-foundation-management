@@ -1,7 +1,7 @@
 import express from "express";
 import Attendance from "../models/Attendance.js";
 import Request from "../models/Request.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken, isAdminOrManager } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const isPastDate = (dateStr) => {
 };
 
 // 1. Mark Attendance (Date-aware)
-router.post("/mark", verifyToken, async (req, res) => {
+router.post("/mark", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { student, status, date } = req.body;
     const targetDate = date || new Date().toISOString().split("T")[0];
@@ -48,7 +48,7 @@ router.post("/mark", verifyToken, async (req, res) => {
 });
 
 // 2. Bulk Update/Save (DateWise edit ke liye)
-router.post("/bulk", verifyToken, async (req, res) => {
+router.post("/bulk", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { records, date } = req.body;
     if (!records || !Array.isArray(records) || records.length === 0) {
@@ -91,7 +91,7 @@ router.post("/bulk", verifyToken, async (req, res) => {
 });
 
 // 3. Get All Records
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const records = await Attendance.find().populate("student").lean();
     res.status(200).json(records);

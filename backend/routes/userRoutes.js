@@ -44,10 +44,11 @@ router.put('/profile/change-password', verifyToken, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        if (currentPassword) {
-            const isMatch = await bcrypt.compare(currentPassword, user.password);
-            if (!isMatch) return res.status(400).json({ message: "Current password is incorrect" });
+        if (!currentPassword) {
+            return res.status(400).json({ message: "Current password is required." });
         }
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.status(400).json({ message: "Current password is incorrect" });
 
         user.password = await bcrypt.hash(newPassword.trim(), 10);
         await user.save();

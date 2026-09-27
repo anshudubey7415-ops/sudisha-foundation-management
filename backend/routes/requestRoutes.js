@@ -6,12 +6,12 @@ import {
     getMyRequests,
     updateRequestStatus 
 } from '../controllers/requestController.js';
-import { verifyToken, isAdmin } from '../middleware/authMiddleware.js';
+import { verifyToken, isAdmin, isAdminOrManager } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Manager creates request
-router.post('/', verifyToken, createRequest);
+router.post('/', verifyToken, isAdminOrManager, createRequest);
 
 // Manager views their own requests
 router.get('/my-requests', verifyToken, getMyRequests);

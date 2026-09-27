@@ -5,7 +5,7 @@ import InternAttendance from "../models/InternAttendance.js";
 import Intern from "../models/Intern.js";
 import User from "../models/User.js";
 import Request from "../models/Request.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken, isAdminOrManager } from "../middleware/authMiddleware.js";
 
 // Helper to check if a date string is past date
 const isPastDate = (dateStr) => {
@@ -17,7 +17,7 @@ const isPastDate = (dateStr) => {
 /* =========================
    MARK ATTENDANCE
 ========================= */
-router.post("/mark", verifyToken, async (req, res) => {
+router.post("/mark", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { intern, status, date } = req.body;
     const attendanceDate = date || new Date().toISOString().split("T")[0];
@@ -65,7 +65,7 @@ router.post("/mark", verifyToken, async (req, res) => {
 /* =========================
    BULK MARK ATTENDANCE
 ========================= */
-router.post("/bulk", verifyToken, async (req, res) => {
+router.post("/bulk", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { records, date } = req.body;
     if (!records || !Array.isArray(records) || records.length === 0) {
@@ -110,7 +110,7 @@ router.post("/bulk", verifyToken, async (req, res) => {
 /* =========================
    GET ALL ATTENDANCE
 ========================= */
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const records = await InternAttendance.find()
       .populate("intern")
@@ -160,7 +160,7 @@ router.get("/my/attendance", verifyToken, async (req, res) => {
 /* =========================
    GET ATTENDANCE BY INTERN
 ========================= */
-router.get("/intern/:id", async (req, res) => {
+router.get("/intern/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const records = await InternAttendance.find({ intern: req.params.id })
       .populate("intern")
@@ -175,7 +175,7 @@ router.get("/intern/:id", async (req, res) => {
 /* =========================
    DELETE ATTENDANCE RECORD
 ========================= */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const attendance = await InternAttendance.findByIdAndDelete(req.params.id);
     if (!attendance) {

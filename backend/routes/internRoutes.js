@@ -4,31 +4,15 @@ const router = express.Router();
 import Intern from "../models/Intern.js";
 import InternAttendance from "../models/InternAttendance.js";
 import User from "../models/User.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken, isAdminOrManager } from "../middleware/authMiddleware.js";
 
-import multer from "multer";
-import path from "path";
-
-/* =========================
-   Multer Configuration
-========================= */
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({ storage });
+import { upload } from "../config/uploadStorage.js";
 
 /* =========================
    Upload Photo
 ========================= */
 
-router.post("/upload/:id", upload.single("photo"), async (req, res) => {
+router.post("/upload/:id", verifyToken, isAdminOrManager, upload.single("photo"), async (req, res) => {
   try {
     const intern = await Intern.findByIdAndUpdate(
       req.params.id,
@@ -45,7 +29,7 @@ router.post("/upload/:id", upload.single("photo"), async (req, res) => {
    Add Intern
 ========================= */
 
-router.post("/add", async (req, res) => {
+router.post("/add", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const count = await Intern.countDocuments();
     const currentYear = new Date().getFullYear();
@@ -65,7 +49,7 @@ router.post("/add", async (req, res) => {
    Get All Interns
 ========================= */
 
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const [interns, allRecords] = await Promise.all([
       Intern.find().lean(),
@@ -154,7 +138,7 @@ router.get("/my/profile", verifyToken, async (req, res) => {
    Get Single Intern
 ========================= */
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const intern = await Intern.findById(req.params.id);
     if (!intern) return res.status(404).json({ message: "Intern not found" });
@@ -182,7 +166,7 @@ router.get("/:id", async (req, res) => {
    Update Document Permissions
 ========================= */
 
-router.patch("/:id/document-permissions", verifyToken, async (req, res) => {
+router.patch("/:id/document-permissions", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { allowIdCard, allowOfferLetter, allowCertificate } = req.body;
     const updateData = {};
@@ -206,7 +190,7 @@ router.patch("/:id/document-permissions", verifyToken, async (req, res) => {
    Update Intern
 ========================= */
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const intern = await Intern.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!intern) return res.status(404).json({ message: "Intern not found" });
@@ -222,7 +206,7 @@ import Request from "../models/Request.js";
    Delete Intern
 ========================= */
 
-router.delete("/:id", verifyToken, async (req, res) => {
+router.delete("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const intern = await Intern.findById(req.params.id);
     if (!intern) return res.status(404).json({ message: "Intern not found" });

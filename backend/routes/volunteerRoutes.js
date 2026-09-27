@@ -3,33 +3,15 @@ const router = express.Router();
 
 import Volunteer from "../models/Volunteer.js";
 import VolunteerAttendance from "../models/VolunteerAttendance.js";
+import { verifyToken, isAdminOrManager } from "../middleware/authMiddleware.js";
 
-import multer from "multer";
-import path from "path";
-
-/* =========================
-    Multer Configuration
-========================= */
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage,
-});
+import { upload } from "../config/uploadStorage.js";
 
 /* ==========================================
     💥 FIXED ROUTE: Get Date-Wise Attendance History
     URL Pattern: /api/volunteers/attendance/date/:date
 ========================================== */
-router.get("/attendance/date/:date", async (req, res) => {
+router.get("/attendance/date/:date", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { date } = req.params; // HTML input text format: YYYY-MM-DD
 
@@ -60,7 +42,7 @@ router.get("/attendance/date/:date", async (req, res) => {
     Upload Volunteer Photo
 ========================= */
 
-router.post("/upload/:id", upload.single("photo"), async (req, res) => {
+router.post("/upload/:id", verifyToken, isAdminOrManager, upload.single("photo"), async (req, res) => {
   try {
     const volunteer = await Volunteer.findByIdAndUpdate(
       req.params.id,
@@ -84,7 +66,7 @@ router.post("/upload/:id", upload.single("photo"), async (req, res) => {
     Add Volunteer
 ========================= */
 
-router.post("/add", async (req, res) => {
+router.post("/add", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const volunteer = await Volunteer.create(req.body);
 
@@ -100,7 +82,7 @@ router.post("/add", async (req, res) => {
     Get All Volunteers
 ========================= */
 
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const [volunteers, allRecords] = await Promise.all([
       Volunteer.find().lean(),
@@ -150,7 +132,7 @@ router.get("/", async (req, res) => {
     Get Single Volunteer
 ========================= */
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const volunteer = await Volunteer.findById(req.params.id);
 
@@ -198,7 +180,7 @@ router.get("/:id", async (req, res) => {
     Update Volunteer
 ========================= */
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const volunteer = await Volunteer.findByIdAndUpdate(
       req.params.id,
@@ -223,13 +205,11 @@ router.put("/:id", async (req, res) => {
 });
 
 import Request from "../models/Request.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
-
 /* =========================
     Delete Volunteer
 ========================= */
 
-router.delete("/:id", verifyToken, async (req, res) => {
+router.delete("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const volunteer = await Volunteer.findById(req.params.id);
     if (!volunteer) {

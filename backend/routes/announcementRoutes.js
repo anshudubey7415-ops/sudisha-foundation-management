@@ -1,5 +1,6 @@
 import express from "express";
 import Announcement from "../models/Announcement.js";
+import { verifyToken, isAdminOrManager } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.get("/", async (req, res) => {
 });
 
 // Naya announcement banane ke liye
-router.post("/", async (req, res) => {
+router.post("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const newAnnouncement = new Announcement(req.body);
     await newAnnouncement.save();
@@ -25,7 +26,7 @@ router.post("/", async (req, res) => {
 });
 
 // Announcement delete karne ke liye
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const deleted = await Announcement.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Announcement not found" });

@@ -3,33 +3,16 @@ const router = express.Router();
 
 import Student from "../models/student.js";
 import Attendance from "../models/Attendance.js";
+import Request from "../models/Request.js";
+import { verifyToken, isAdminOrManager } from "../middleware/authMiddleware.js";
 
-import multer from "multer";
-import path from "path";
-
-/* =========================
-Multer Configuration
-========================= */
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage,
-});
+import { upload } from "../config/uploadStorage.js";
 
 /* =========================
 Upload Student Photo
 ========================= */
 
-router.post("/upload/:id", upload.single("photo"), async (req, res) => {
+router.post("/upload/:id", verifyToken, isAdminOrManager, upload.single("photo"), async (req, res) => {
   try {
     const updatedStudent = await Student.findByIdAndUpdate(
       req.params.id,
@@ -53,7 +36,7 @@ router.post("/upload/:id", upload.single("photo"), async (req, res) => {
 Add Student
 ========================= */
 
-router.post("/add", async (req, res) => {
+router.post("/add", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const newStudent = await Student.create(req.body);
     res.status(201).json(newStudent);
@@ -68,7 +51,7 @@ router.post("/add", async (req, res) => {
 Get All Students
 ========================= */
 
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const [students, allAttendance] = await Promise.all([
       Student.find().lean(),
@@ -116,7 +99,7 @@ router.get("/", async (req, res) => {
 Get Single Student
 ========================= */
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const foundStudent = await Student.findById(req.params.id);
 
@@ -154,14 +137,11 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-import Request from "../models/Request.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
-
 /* =========================
 Update Student
 ========================= */
 
-router.put("/:id", verifyToken, async (req, res) => {
+router.put("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) {
@@ -204,7 +184,7 @@ router.put("/:id", verifyToken, async (req, res) => {
 Delete Student
 ========================= */
 
-router.delete("/:id", verifyToken, async (req, res) => {
+router.delete("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) {

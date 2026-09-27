@@ -2,7 +2,7 @@ import express from "express";
 import Project from "../models/Project.js";
 import Intern from "../models/Intern.js";
 import User from "../models/User.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken, isAdminOrManager } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -39,7 +39,7 @@ router.get("/my/projects", verifyToken, async (req, res) => {
 });
 
 // 1. Project Create karna
-router.post("/", async (req, res) => {
+router.post("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const newProject = new Project(req.body);
     await newProject.save();
@@ -50,7 +50,7 @@ router.post("/", async (req, res) => {
 });
 
 // 2. Saare Projects dekhna
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const projects = await Project.find();
     res.json(projects);
@@ -60,7 +60,7 @@ router.get("/", async (req, res) => {
 });
 
 // 3. Edit karne ke liye: Single Project fetch karna (by ID)
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: "Project not found" });
@@ -71,7 +71,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // 4. Update project (Edit functionality)
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const updatedProject = await Project.findByIdAndUpdate(
       req.params.id, 
@@ -85,7 +85,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // 5. Delete project (Naya route)
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     await Project.findByIdAndDelete(req.params.id);
     res.json({ message: "Project deleted successfully" });

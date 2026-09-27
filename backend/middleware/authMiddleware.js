@@ -31,3 +31,11 @@ export const isAdmin = (req, res, next) => {
         res.status(403).json({ message: "Access Denied: Sirf Admin ko access hai!" });
     }
 };
+
+export const isAdminOrManager = (req, res, next) => {
+    const role = req.user?.role?.toLowerCase();
+    if (role === 'admin' || role === 'manager') {
+        return next();
+    }
+    return res.status(403).json({ message: "Access denied: admin or manager role required." });
+};

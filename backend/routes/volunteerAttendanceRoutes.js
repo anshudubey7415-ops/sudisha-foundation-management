@@ -4,7 +4,7 @@ const router = express.Router();
 import Volunteer from "../models/Volunteer.js";
 import VolunteerAttendance from "../models/VolunteerAttendance.js";
 import Request from "../models/Request.js";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { verifyToken, isAdminOrManager } from "../middleware/authMiddleware.js";
 
 // Helper to check if a date string is past date
 const isPastDate = (dateStr) => {
@@ -16,7 +16,7 @@ const isPastDate = (dateStr) => {
 /* =========================
    Mark Single Attendance
 ========================= */
-router.post("/mark", verifyToken, async (req, res) => {
+router.post("/mark", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { volunteer, date, status, checkIn, checkOut, remarks } = req.body;
 
@@ -66,7 +66,7 @@ router.post("/mark", verifyToken, async (req, res) => {
 /* =========================
    Bulk Manual Attendance
 ========================= */
-router.post("/bulk", verifyToken, async (req, res) => {
+router.post("/bulk", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { records, date } = req.body;
 
@@ -120,7 +120,7 @@ router.post("/bulk", verifyToken, async (req, res) => {
 /* =========================
    Get All Attendance
 ========================= */
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const records = await VolunteerAttendance.find()
       .populate("volunteer", "volunteerId name")
@@ -135,7 +135,7 @@ router.get("/", async (req, res) => {
 /* =========================
    Attendance By Volunteer
 ========================= */
-router.get("/volunteer/:id", async (req, res) => {
+router.get("/volunteer/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const records = await VolunteerAttendance.find({ volunteer: req.params.id })
       .populate("volunteer", "volunteerId name")
@@ -149,7 +149,7 @@ router.get("/volunteer/:id", async (req, res) => {
 /* =========================
    Get Single Attendance Record
 ========================= */
-router.get("/record/:id", async (req, res) => {
+router.get("/record/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const record = await VolunteerAttendance.findById(req.params.id).populate("volunteer");
     if (!record) return res.status(404).json({ message: "Record not found" });
@@ -159,7 +159,7 @@ router.get("/record/:id", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const record = await VolunteerAttendance.findById(req.params.id).populate("volunteer");
     if (!record) return res.status(404).json({ message: "Record not found" });
@@ -172,7 +172,7 @@ router.get("/:id", async (req, res) => {
 /* =========================
    Update Attendance
 ========================= */
-router.put("/:id", verifyToken, async (req, res) => {
+router.put("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const existing = await VolunteerAttendance.findById(req.params.id).populate("volunteer");
     if (!existing) return res.status(404).json({ message: "Attendance not found" });
@@ -222,7 +222,7 @@ router.put("/:id", verifyToken, async (req, res) => {
 /* =========================
    Delete Attendance
 ========================= */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const attendance = await VolunteerAttendance.findByIdAndDelete(req.params.id);
     if (!attendance) return res.status(404).json({ message: "Attendance not found" });
@@ -235,7 +235,7 @@ router.delete("/:id", async (req, res) => {
 /* =========================
    Volunteer Analytics
 ========================= */
-router.get("/analytics/:id", async (req, res) => {
+router.get("/analytics/:id", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const records = await VolunteerAttendance.find({ volunteer: req.params.id });
     const totalAttendanceDays = records.length;

@@ -47,29 +47,26 @@ export const sendOtpEmail = async (toEmail, otp, name = 'Administrator') => {
     </div>
   `;
 
-  console.log(`\n========================================`);
-  console.log(`🔑 [EMAIL DISPATCH - OTP FOR ADMIN]`);
-  console.log(`📧 TO: ${toEmail}`);
-  console.log(`🔢 OTP CODE: ${otp}`);
-  console.log(`⏳ VALIDITY: 10 minutes`);
-  console.log(`========================================\n`);
+  const transporter = createTransporter();
+  if (!transporter && process.env.NODE_ENV === 'production') {
+    throw new Error('SMTP is not configured; password reset email cannot be sent.');
+  }
+  if (!transporter) {
+    console.log(`Development OTP for ${toEmail}: ${otp}`);
+    return { success: true, mode: 'console' };
+  }
 
   try {
-    const transporter = createTransporter();
-    if (transporter) {
-      await transporter.sendMail({
-        from: `"Sudisha Foundation" <${process.env.EMAIL_USER || 'no-reply@sudishafoundation.org'}>`,
-        to: toEmail,
-        subject,
-        html
-      });
-      console.log(`✅ Real OTP email sent successfully to ${toEmail}`);
-      return { success: true, mode: 'smtp' };
-    }
-    return { success: true, mode: 'console' };
+    await transporter.sendMail({
+      from: `"Sudisha Foundation" <${process.env.EMAIL_USER || 'no-reply@sudishafoundation.org'}>`,
+      to: toEmail,
+      subject,
+      html
+    });
+    return { success: true, mode: 'smtp' };
   } catch (err) {
-    console.error(`⚠️ Failed to send SMTP email: ${err.message}`);
-    return { success: true, mode: 'console', note: err.message };
+    console.error(`Failed to send OTP email: ${err.message}`);
+    throw err;
   }
 };
 
@@ -110,28 +107,24 @@ export const sendNewPasswordEmail = async (toEmail, newPassword, name = 'User', 
     </div>
   `;
 
-  console.log(`\n========================================`);
-  console.log(`🔑 [EMAIL DISPATCH - NEW PASSWORD ISSUED]`);
-  console.log(`📧 TO: ${toEmail}`);
-  console.log(`👤 NAME: ${name} (${role})`);
-  console.log(`🔐 NEW PASSWORD: ${newPassword}`);
-  console.log(`========================================\n`);
+  const transporter = createTransporter();
+  if (!transporter && process.env.NODE_ENV === 'production') {
+    throw new Error('SMTP is not configured; password email cannot be sent.');
+  }
+  if (!transporter) {
+    return { success: true, mode: 'console' };
+  }
 
   try {
-    const transporter = createTransporter();
-    if (transporter) {
-      await transporter.sendMail({
-        from: `"Sudisha Foundation" <${process.env.EMAIL_USER || 'no-reply@sudishafoundation.org'}>`,
-        to: toEmail,
-        subject,
-        html
-      });
-      console.log(`✅ Real New Password email sent successfully to ${toEmail}`);
-      return { success: true, mode: 'smtp' };
-    }
-    return { success: true, mode: 'console' };
+    await transporter.sendMail({
+      from: `"Sudisha Foundation" <${process.env.EMAIL_USER || 'no-reply@sudishafoundation.org'}>`,
+      to: toEmail,
+      subject,
+      html
+    });
+    return { success: true, mode: 'smtp' };
   } catch (err) {
-    console.error(`⚠️ Failed to send SMTP email: ${err.message}`);
-    return { success: true, mode: 'console', note: err.message };
+    console.error(`Failed to send password email: ${err.message}`);
+    throw err;
   }
 };
