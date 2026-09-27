@@ -75,7 +75,11 @@ function CertificateVerification() {
                 boxShadow: "0 0 24px rgba(99, 102, 241, 0.4)",
               }}
             >
-              SF
+              <img
+                src="/logo.png"
+                alt="Sudisha Foundation logo"
+                style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "inherit" }}
+              />
             </div>
             <h1 style={{ margin: 0, fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
               Sudisha Foundation

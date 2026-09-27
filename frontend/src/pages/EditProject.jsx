@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Edit2, Check, Plus, Loader2 } from "lucide-react";
+import { Edit2, Check, Plus } from "lucide-react";
 import API from "../api";
 import Layout from "../components/Layout";
 import { useToast } from "../context/ToastContext";

@@ -12,8 +12,6 @@ import {
   Bell,
   CalendarCheck,
   CheckCircle2,
-  XCircle,
-  Activity,
   PieChart as PieChartIcon,
   X,
   ArrowRight,
@@ -21,9 +19,6 @@ import {
   Plus,
   Calendar,
   Layers,
-  Sparkles,
-  TrendingUp,
-  Clock
 } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 import API from "../api";

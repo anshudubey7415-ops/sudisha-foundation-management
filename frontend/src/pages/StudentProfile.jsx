@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
   User,
@@ -19,7 +19,6 @@ import API, { getUploadUrl } from "../api";
 
 function StudentProfile() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
 
   const [student, setStudent] = useState(null);

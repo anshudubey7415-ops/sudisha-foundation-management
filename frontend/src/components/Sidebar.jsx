@@ -22,7 +22,6 @@ import {
   CalendarCheck,
   CalendarDays,
   PlusCircle,
-  ShieldCheck,
   Sparkles
 } from "lucide-react";
 import { ThemeContext } from "../context/ThemeContext";
@@ -125,7 +124,7 @@ function Sidebar({ children }) {
         <div className="sidebar-brand-wrapper">
           <Link to={dashboardRoute} className="sidebar-brand" onClick={() => setActiveMenu(null)}>
             <div className="sidebar-logo-icon">
-              <span>SF</span>
+              <img src="/logo.png" alt="Sudisha Foundation logo" />
             </div>
             <div className="sidebar-brand-text">
               <span className="sidebar-brand-name">Sudisha Foundation</span>

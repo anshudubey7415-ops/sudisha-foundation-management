@@ -17,7 +17,6 @@ import {
   X,
   Loader2,
   Plus,
-  GraduationCap,
   Building2,
   CheckCircle2,
   Clock

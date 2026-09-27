@@ -126,7 +126,6 @@ function InternAttendanceHistory() {
                   {filteredRecords.map((record) => {
                     const isPresent = record.status === "Present";
                     const isWFH = record.status === "Work From Home";
-                    const isAbsent = record.status === "Absent";
 
                     return (
                       <tr key={record._id}>

@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useCallback } from 'react';
 
 export const ThemeContext = createContext();

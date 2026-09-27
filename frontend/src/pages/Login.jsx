@@ -15,8 +15,6 @@ import {
     CheckCircle2, 
     X, 
     Sparkles, 
-    Lock,
-    Send
 } from 'lucide-react';
 
 const Login = () => {
@@ -35,7 +33,6 @@ const Login = () => {
     const [forgotConfirmPass, setForgotConfirmPass] = useState('');
     const [showForgotNewPass, setShowForgotNewPass] = useState(false);
     const [forgotLoading, setForgotLoading] = useState(false);
-    const [forgotMessage, setForgotMessage] = useState('');
     const [forgotRole, setForgotRole] = useState('');
 
     const navigate = useNavigate();
@@ -75,7 +72,6 @@ const Login = () => {
         setForgotNewPass('');
         setForgotConfirmPass('');
         setForgotStep('email');
-        setForgotMessage('');
         setShowForgotModal(true);
     };
 
@@ -98,7 +94,6 @@ const Login = () => {
                 showSuccess("OTP code sent to your registered Admin email!");
             } else {
                 setForgotStep('request_sent');
-                setForgotMessage(res.data.message || `Password reset request submitted to Admin.`);
                 showSuccess("Password reset request sent to Admin successfully!");
             }
         } catch (err) {
@@ -192,7 +187,11 @@ const Login = () => {
                         fontWeight: 800,
                         boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)"
                     }}>
-                        SF
+                        <img
+                            src="/logo.png"
+                            alt="Sudisha Foundation logo"
+                            style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "inherit" }}
+                        />
                     </div>
                     <h1 style={{ fontSize: "1.5rem", margin: "0 0 6px 0" }}>Sudisha Foundation</h1>
                     <p style={{ margin: 0, fontSize: "0.875rem" }}>Sign in to access your management portal</p>

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useContext } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
   Briefcase,
@@ -27,7 +27,6 @@ import API, { getUploadUrl } from "../api";
 
 function InternProfile() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { showSuccess, showError, showWarning } = useToast();
   const { user: authUser } = useContext(AuthContext);
   const isAdminUser = authUser?.role?.toLowerCase() === "admin";
@@ -78,7 +77,7 @@ function InternProfile() {
       setCheckingAccount(true);
       const res = await API.get(`/users/by-email/${encodeURIComponent(email.trim())}`);
       setUserAccount(res.data);
-    } catch (err) {
+    } catch {
       // 404 means no account created yet
       setUserAccount(null);
     } finally {
@@ -172,7 +171,7 @@ function InternProfile() {
     try {
       setTogglingPerm(true);
       const nextValue = !currentValue;
-      const res = await API.patch(`/interns/${id}/document-permissions`, {
+      await API.patch(`/interns/${id}/document-permissions`, {
         [permKey]: nextValue,
       });
 

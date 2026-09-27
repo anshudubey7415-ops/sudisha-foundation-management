@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { FolderKanban, Check, Plus, Loader2 } from "lucide-react";
+import { FolderKanban, Check, Plus } from "lucide-react";
 import API from "../api";
 import Layout from "../components/Layout";
 import { useToast } from "../context/ToastContext";

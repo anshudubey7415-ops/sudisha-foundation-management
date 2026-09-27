@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
   HeartHandshake,
@@ -18,7 +18,6 @@ import API, { getUploadUrl } from "../api";
 
 function VolunteerProfile() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
 
   const [volunteer, setVolunteer] = useState(null);

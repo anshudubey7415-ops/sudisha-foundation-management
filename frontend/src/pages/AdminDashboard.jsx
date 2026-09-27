@@ -13,8 +13,6 @@ import {
   Bell,
   CalendarCheck,
   CheckCircle2,
-  XCircle,
-  Activity,
   PieChart as PieChartIcon,
   Check,
   X,
